@@ -253,7 +253,7 @@ export default function Home() {
             style={{ background: 'rgba(10,6,2,0.96)', borderRight: '1px solid rgba(200,160,80,0.18)' }}
           >
             {/* ── Header ── */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-amber-900/30">
+            <div className="flex items-center justify-between px-5 pt-16 pb-3 border-b border-amber-900/30">
               <div className="flex items-center gap-2">
                 <span className="text-amber-400 font-black italic tracking-tighter text-lg md:text-xl">WORLD VLOG</span>
               </div>
@@ -437,7 +437,7 @@ export default function Home() {
             </div>
 
             {/* ── Language Switcher ── */}
-            <div className="px-5 py-3 border-t border-amber-900/30 shrink-0">
+            <div className="px-5 pt-3 pb-10 border-t border-amber-900/30 shrink-0">
               <div className="flex items-center gap-1.5 mb-2">
                 <Globe size={12} className="text-amber-400/50" />
                 <p className="text-[10px] uppercase tracking-widest text-amber-400/40 font-semibold">言語 / Language</p>
