@@ -57,11 +57,16 @@ export default function LeafletMap({
             const map = L.map(mapContainerRef.current, {
                 center: [20, 10],
                 zoom: 2,
-                zoomControl: true,
+                zoomControl: false, // Disable default top-left zoom control
                 attributionControl: true,
                 minZoom: 2,
                 maxZoom: 16,
             });
+
+            // Add zoom control to bottom-right
+            L.control.zoom({
+                position: 'bottomright'
+            }).addTo(map);
 
             // Retro/antique tile layer using CartoDB Voyager
             L.tileLayer(
