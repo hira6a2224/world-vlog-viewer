@@ -31,13 +31,17 @@ export async function searchVideos(
     maxResults: number = 10,
     localKeywords?: string[],
     regionCode?: string,
-    isCampMode: boolean = false,
+    mode: 'vlog' | 'camp' | 'scenic' = 'vlog',
 ): Promise<VideoResult[]> {
     // Build a rich multi-language query
-    // Camp mode uses outdoor/camping keywords; Vlog mode uses walking tour + local language
+    // camp: outdoor/camping keywords
+    // scenic: drone, 4k, aerial views
+    // vlog: walking tour + local language
     let fullQuery: string;
-    if (isCampMode) {
+    if (mode === 'camp') {
         fullQuery = `${query} Solo Camping OR Bushcraft OR Outdoor vlog OR Nature ASMR`;
+    } else if (mode === 'scenic') {
+        fullQuery = `${query} drone 4K aerial view OR scenic nature travel`;
     } else {
         const localPart = localKeywords && localKeywords.length > 0
             ? localKeywords.join(' OR ')

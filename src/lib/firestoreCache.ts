@@ -29,9 +29,9 @@ function encodeDocId(key: string): string {
 export function makeCacheKey(
     cityName: string,
     regionCode: string,
-    isCampMode: boolean,
+    mode: string,
 ): string {
-    return `${cityName}|${regionCode}|${isCampMode}`;
+    return `${cityName}|${regionCode}|${mode}`;
 }
 
 interface CacheDoc {

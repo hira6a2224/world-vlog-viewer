@@ -24,10 +24,10 @@ const cache = new Map<string, CacheEntry>();
 function makeMemCacheKey(
     query: string,
     regionCode: string | undefined,
-    isCampMode: boolean,
+    mode: string,
     localKeywords: string[] | undefined,
 ): string {
-    return `${query}|${regionCode ?? ''}|${isCampMode}|${(localKeywords ?? []).join(',')}`;
+    return `${query}|${regionCode ?? ''}|${mode}|${(localKeywords ?? []).join(',')}`;
 }
 
 function evictExpiredOrOldest() {
@@ -55,7 +55,9 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q');
     const maxResults = parseInt(searchParams.get('maxResults') || '8', 10);
     const regionCode = searchParams.get('regionCode') || undefined;
-    const isCampMode = searchParams.get('isCampMode') === 'true';
+
+    // mode: 'vlog' | 'camp' | 'scenic'
+    const mode = (searchParams.get('mode') || 'vlog') as 'vlog' | 'camp' | 'scenic';
 
     // Local language keywords (JSON array)
     let localKeywords: string[] | undefined;
@@ -74,7 +76,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ── ① In-Memory Cache lookup ──
-    const memKey = makeMemCacheKey(query, regionCode, isCampMode, localKeywords);
+    const memKey = makeMemCacheKey(query, regionCode, mode, localKeywords);
     const memCached = cache.get(memKey);
 
     if (memCached && memCached.expiresAt > Date.now()) {
@@ -84,7 +86,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ── ② Firestore Cache lookup ──
-    const fsKey = makeCacheKey(query, regionCode ?? '', isCampMode);
+    const fsKey = makeCacheKey(query, regionCode ?? '', mode);
     const fsVideos = await getCachedVideos(db, fsKey);
 
     if (fsVideos) {
@@ -98,7 +100,7 @@ export async function GET(request: NextRequest) {
     console.info(`[cache MISS]    "${query}" → calling YouTube API`);
 
     try {
-        const videos = await searchVideos(query, apiKey, maxResults, localKeywords, regionCode, isCampMode);
+        const videos = await searchVideos(query, apiKey, maxResults, localKeywords, regionCode, mode);
 
         // Save to Firestore (persistent)
         await setCachedVideos(db, fsKey, videos);

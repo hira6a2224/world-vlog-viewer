@@ -34,7 +34,7 @@ export default function Home() {
   const [expandedAreaId, setExpandedAreaId] = useState<string | null>(null);
   const [expandedCountryCode, setExpandedCountryCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCampMode, setIsCampMode] = useState(false);
+  const [videoMode, setVideoMode] = useState<'vlog' | 'camp' | 'scenic'>('vlog');
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Locale switching
@@ -105,7 +105,7 @@ export default function Home() {
         maxResults: '8',
         regionCode: country.regionCode,
         localKeywords: JSON.stringify(city.localKeywords),
-        isCampMode: String(isCampMode),
+        mode: videoMode,
       });
       const res = await fetch(`/api/youtube?${params}`);
       const data = await res.json();
@@ -119,7 +119,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [isCampMode]);
+  }, [videoMode]);
 
   // Sidebar area/country click also triggers map
   const handleSidebarAreaClick = useCallback((area: Area) => {
@@ -184,7 +184,7 @@ export default function Home() {
         q: cityName,
         maxResults: '8',
         ...(countryCode && { regionCode: countryCode }),
-        isCampMode: String(isCampMode),
+        mode: videoMode,
       });
       const ytRes = await fetch(`/api/youtube?${params}`);
       const ytData = await ytRes.json();
@@ -213,7 +213,7 @@ export default function Home() {
       setMapClickLocation(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCampMode, showPlayer]);
+  }, [videoMode, showPlayer]);
 
   const currentVideo = videos[currentVideoIndex];
 
@@ -262,19 +262,42 @@ export default function Home() {
               </button>
             </div>
 
-            {/* ── Camp Mode Toggle ── */}
-            <div className="px-4 pt-3 pb-2">
+            {/* ── Mode Selection ── */}
+            <div className="px-4 pt-3 pb-2 flex gap-1.5">
               <button
-                onClick={() => setIsCampMode(v => !v)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all text-sm font-semibold
-                                    ${isCampMode
-                    ? 'bg-orange-700/25 border-orange-500/50 text-orange-300'
-                    : 'bg-white/5 border-white/10 text-amber-200/70 hover:bg-amber-900/20 hover:border-amber-700/30'
+                onClick={() => setVideoMode('vlog')}
+                className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
+                  ${videoMode === 'vlog'
+                    ? 'bg-amber-700/30 border-amber-500/50 text-amber-200 shadow-inner'
+                    : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
                   }`}
               >
-                <span className="text-xl">{isCampMode ? '⛺' : '📹'}</span>
-                <span>{isCampMode ? 'Camp Mode' : 'Vlog Mode'}</span>
-                <span className="ml-auto text-xs opacity-60">{isCampMode ? 'ON' : 'OFF'}</span>
+                <span className="text-xl mb-1">📹</span>
+                <span className="text-[10px] font-bold tracking-wider">VLOG</span>
+              </button>
+
+              <button
+                onClick={() => setVideoMode('camp')}
+                className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
+                  ${videoMode === 'camp'
+                    ? 'bg-orange-700/30 border-orange-500/50 text-orange-200 shadow-inner'
+                    : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
+                  }`}
+              >
+                <span className="text-xl mb-1">⛺</span>
+                <span className="text-[10px] font-bold tracking-wider">CAMP</span>
+              </button>
+
+              <button
+                onClick={() => setVideoMode('scenic')}
+                className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
+                  ${videoMode === 'scenic'
+                    ? 'bg-sky-700/30 border-sky-500/50 text-sky-200 shadow-inner'
+                    : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
+                  }`}
+              >
+                <span className="text-xl mb-1">🚁</span>
+                <span className="text-[10px] font-bold tracking-wider">SCENIC</span>
               </button>
             </div>
 
@@ -483,7 +506,9 @@ export default function Home() {
               <Loader2 size={48} className="text-amber-400 animate-spin" />
               <p className="text-lg font-light tracking-widest text-amber-200/70">{selectedCity?.name}</p>
               <p className="text-xs text-amber-500/50">
-                {isCampMode ? '⛺ キャンプ動画を検索中…' : '📹 Vlog を検索中…'}
+                {videoMode === 'scenic' ? '🚁 絶景動画を検索中…' :
+                  videoMode === 'camp' ? '⛺ キャンプ動画を検索中…' :
+                    '📹 Vlog を検索中…'}
               </p>
             </div>
           </motion.div>
@@ -512,7 +537,9 @@ export default function Home() {
               {/* Mode badge */}
               <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
                 <span className="glass-panel px-3 py-1 rounded-full text-xs font-semibold text-amber-300 flex items-center gap-1.5">
-                  {isCampMode ? '⛺ Camp Mode' : '📹 Vlog Mode'}
+                  {videoMode === 'scenic' ? '🚁 Scenic Mode' :
+                    videoMode === 'camp' ? '⛺ Camp Mode' :
+                      '📹 Vlog Mode'}
                 </span>
                 {selectedCity && (
                   <span className="glass-panel px-3 py-1 rounded-full text-xs text-amber-200/60">
