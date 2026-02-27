@@ -33,36 +33,45 @@ export async function searchVideos(
     regionCode?: string,
     mode: 'vlog' | 'camp' | 'scenic' = 'vlog',
 ): Promise<VideoResult[]> {
-    // Build a rich multi-language query
-    // camp: outdoor/camping keywords
-    // scenic: drone, 4k, aerial views
-    // vlog: walking tour + local language
-    let fullQuery: string;
+    // Negative keywords to exclude nightlife / sketchy / reaction content
+    const EXCLUDE_TERMS = [
+        'nightlife', 'night walk', 'red light', 'reaction',
+        'kabukicho', '歌舞伎町', 'tokoyoko', '東横',
+        'dangerous', 'worst', 'scam', 'scary',
+    ];
+
+    // Build search queries - we'll run 2 focused queries and merge
+    const queries: string[] = [];
+
     if (mode === 'camp') {
-        fullQuery = `${query} Solo Camping OR Bushcraft OR Outdoor vlog OR Nature ASMR`;
+        queries.push(`"${query}" Solo Camping OR Bushcraft OR Outdoor vlog`);
     } else if (mode === 'scenic') {
-        fullQuery = `${query} drone 4K aerial view OR scenic nature travel`;
+        queries.push(`"${query}" drone 4K aerial view`);
+        queries.push(`"${query}" scenic cinematic travel`);
     } else {
-        const localPart = localKeywords && localKeywords.length > 0
-            ? localKeywords.join(' OR ')
-            : '';
-        const baseQuery = `${query} walking tour vlog`;
-        fullQuery = localPart ? `(${baseQuery}) OR (${localPart})` : baseQuery;
+        // Vlog mode: city name is always required (quoted for exact match)
+        queries.push(`"${query}" walking tour daytime 4K`);
+        // Also add a local-language query if available
+        if (localKeywords && localKeywords.length > 0) {
+            // Include the city name with local keywords for tight relevance
+            queries.push(`"${query}" ${localKeywords[0]}`);
+        }
     }
 
-    // Fetch medium (4-20min) videos
-    const fetchPage = async (duration: 'medium' | 'long') => {
+    // Fetch videos for a single query + duration combo
+    const fetchPage = async (q: string, duration: 'medium' | 'long') => {
         const params: Record<string, string> = {
             part: 'snippet',
-            q: fullQuery,
+            q: q,
             type: 'video',
-            order: 'viewCount',
+            order: 'relevance', // relevance instead of viewCount for better topic match
             videoEmbeddable: 'true',
             videoDuration: duration,
-            maxResults: String(Math.ceil(maxResults * 1.5)), // fetch extra to compensate for filtering
+            maxResults: String(Math.ceil(maxResults * 1.5)),
             key: apiKey,
         };
         if (regionCode) {
+            params.regionCode = regionCode; // restrict results to the target country
             params.relevanceLanguage = getLanguageFromRegion(regionCode);
         }
         const res = await fetch(`${YOUTUBE_API_BASE}/search?${new URLSearchParams(params)}`);
@@ -73,20 +82,23 @@ export async function searchVideos(
         return data.items ?? [];
     };
 
-    // Fetch both medium and long in parallel
-    const [mediumItems, longItems] = await Promise.all([
-        fetchPage('medium'),
-        fetchPage('long'),
+    // Run all query + duration combinations in parallel
+    const fetchPromises = queries.flatMap(q => [
+        fetchPage(q, 'medium'),
+        fetchPage(q, 'long'),
     ]);
+    const allResults = await Promise.all(fetchPromises);
 
     // Merge and de-duplicate by video ID
     const seen = new Set<string>();
     const allItems: Array<{ id: { videoId: string }; snippet: Record<string, unknown> }> = [];
-    for (const item of [...mediumItems, ...longItems]) {
-        const vid = item.id?.videoId;
-        if (vid && !seen.has(vid)) {
-            seen.add(vid);
-            allItems.push(item);
+    for (const items of allResults) {
+        for (const item of items) {
+            const vid = item.id?.videoId;
+            if (vid && !seen.has(vid)) {
+                seen.add(vid);
+                allItems.push(item);
+            }
         }
     }
 
@@ -112,8 +124,9 @@ export async function searchVideos(
         }
     }
 
-    const MIN_VIEWS = 10000;
-    const MIN_DURATION_SECONDS = 10 * 60; // 10 minutes
+    const MIN_VIEWS = 5000; // slightly relaxed to get more relevant hits
+    const MIN_DURATION_SECONDS = 8 * 60; // 8 minutes to allow slightly shorter well-made content
+    const queryLower = query.toLowerCase();
 
     const results: VideoResult[] = [];
     for (const item of allItems) {
@@ -124,8 +137,33 @@ export async function searchVideos(
         const viewCount = parseInt(details.viewCount, 10);
         const { durationSeconds } = details;
 
-        // Quality filter: viewCount >= 10,000 AND duration >= 10 minutes
+        // Quality filter: viewCount and duration
         if (viewCount < MIN_VIEWS || durationSeconds < MIN_DURATION_SECONDS) continue;
+
+        const title = ((item.snippet as { title: string }).title || '').toLowerCase();
+        const channelTitle = ((item.snippet as { channelTitle: string }).channelTitle || '').toLowerCase();
+
+        // Title relevance filter: the video title should mention the city name
+        // (skip this for camp/scenic where the title might not contain the city name exactly)
+        if (mode === 'vlog') {
+            const cityNameVariants = [queryLower];
+            // For Japanese cities, also check common transliterations
+            if (localKeywords && localKeywords.length > 0) {
+                for (const kw of localKeywords) {
+                    // Extract the first word (likely the city name in local language)
+                    const localCity = kw.split(/\s+/)[0].toLowerCase();
+                    if (localCity.length > 1) cityNameVariants.push(localCity);
+                }
+            }
+            const titleMatchesCity = cityNameVariants.some(variant => title.includes(variant));
+            if (!titleMatchesCity) continue; // skip videos that don't mention the city
+        }
+
+        // Exclude negative content
+        const hasExcludedTerm = EXCLUDE_TERMS.some(term =>
+            title.includes(term.toLowerCase()) || channelTitle.includes(term.toLowerCase())
+        );
+        if (hasExcludedTerm) continue;
 
         results.push({
             id: vid,
@@ -140,6 +178,9 @@ export async function searchVideos(
 
         if (results.length >= maxResults) break;
     }
+
+    // Sort results by view count descending (best videos first among filtered set)
+    results.sort((a, b) => parseInt(b.viewCount, 10) - parseInt(a.viewCount, 10));
 
     return results;
 }
