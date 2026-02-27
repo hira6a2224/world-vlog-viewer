@@ -233,10 +233,10 @@ export default function Home() {
       <button
         id="sidebar-toggle"
         onClick={() => setSidebarOpen(v => !v)}
-        className="absolute top-5 left-5 z-[2000] glass-panel p-3 rounded-xl shadow-2xl hover:bg-amber-900/30 transition-all"
+        className="absolute top-4 left-4 z-[2000] glass-panel p-2.5 md:p-3 rounded-xl shadow-2xl hover:bg-amber-900/30 transition-all"
         aria-label="メニューを開く"
       >
-        <Menu size={22} className="text-amber-300" />
+        <Menu size={20} className="text-amber-300" />
       </button>
 
       {/* ══ SIDEBAR DRAWER ══ */}
@@ -249,13 +249,13 @@ export default function Home() {
             animate={{ x: 0 }}
             exit={{ x: -340 }}
             transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-            className="absolute top-0 left-0 h-full w-80 z-[1900] flex flex-col shadow-2xl"
-            style={{ background: 'rgba(10,6,2,0.94)', borderRight: '1px solid rgba(200,160,80,0.18)' }}
+            className="absolute top-0 left-0 h-full w-[85vw] max-w-80 z-[1900] flex flex-col shadow-2xl"
+            style={{ background: 'rgba(10,6,2,0.96)', borderRight: '1px solid rgba(200,160,80,0.18)' }}
           >
             {/* ── Header ── */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-amber-900/30">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-amber-900/30">
               <div className="flex items-center gap-2">
-                <span className="text-amber-400 font-black italic tracking-tighter text-xl">WORLD VLOG</span>
+                <span className="text-amber-400 font-black italic tracking-tighter text-lg md:text-xl">WORLD VLOG</span>
               </div>
               <button onClick={() => setSidebarOpen(false)} className="text-amber-400/60 hover:text-amber-300 transition-colors">
                 <X size={18} />
@@ -263,7 +263,7 @@ export default function Home() {
             </div>
 
             {/* ── Mode Selection ── */}
-            <div className="px-6 pt-3 pb-2 flex gap-1.5">
+            <div className="px-5 pt-3 pb-2 flex gap-1.5">
               <button
                 onClick={() => setVideoMode('vlog')}
                 className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
@@ -302,7 +302,7 @@ export default function Home() {
             </div>
 
             {/* ── City Search ── */}
-            <div className="px-6 pb-2">
+            <div className="px-5 pb-2">
               <div className="flex items-center gap-2 bg-white/5 border border-amber-900/30 rounded-xl px-3 py-2 focus-within:border-amber-600/50 transition-colors">
                 <Search size={16} className="text-amber-400/50 shrink-0" />
                 <input
@@ -351,7 +351,7 @@ export default function Home() {
             </div>
 
             {/* ── Area / Country / City Accordion ── */}
-            <div className="flex-1 overflow-y-auto px-2 pb-6">
+            <div className="flex-1 overflow-y-auto px-3 pb-4">
               <p className="px-3 mb-1 text-[10px] uppercase tracking-widest text-amber-400/40 font-semibold">エリアを選択</p>
               {AREAS.map(area => (
                 <div key={area.id}>
@@ -437,7 +437,7 @@ export default function Home() {
             </div>
 
             {/* ── Language Switcher ── */}
-            <div className="px-6 py-3 border-t border-amber-900/30 mt-auto shrink-0">
+            <div className="px-5 py-3 border-t border-amber-900/30 shrink-0">
               <div className="flex items-center gap-1.5 mb-2">
                 <Globe size={12} className="text-amber-400/50" />
                 <p className="text-[10px] uppercase tracking-widest text-amber-400/40 font-semibold">言語 / Language</p>
@@ -523,9 +523,9 @@ export default function Home() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.92, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="absolute inset-0 z-[1700] flex items-center justify-center p-6 md:p-12"
+            className="absolute inset-0 z-[1700] flex items-center justify-center p-3 md:p-12"
           >
-            <div className="relative w-full h-full max-w-6xl glass-panel rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.7)] border border-amber-900/30">
+            <div className="relative w-full h-full max-w-6xl glass-panel rounded-2xl md:rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.7)] border border-amber-900/30">
               {/* Close */}
               <button
                 onClick={handleClosePlayer}
