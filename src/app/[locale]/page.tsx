@@ -303,15 +303,15 @@ export default function Home() {
 
             {/* ── City Search ── */}
             <div className="px-6 pb-2">
-              <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400/50" />
+              <div className="flex items-center gap-2 bg-white/5 border border-amber-900/30 rounded-xl px-3 py-2 focus-within:border-amber-600/50 transition-colors">
+                <Search size={16} className="text-amber-400/50 shrink-0" />
                 <input
                   ref={searchRef}
                   type="text"
                   placeholder="都市を検索…"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/5 border border-amber-900/30 rounded-xl pl-9 pr-4 py-2 text-sm text-amber-100 placeholder:text-amber-400/30 outline-none focus:border-amber-600/50 transition-colors"
+                  className="w-full bg-transparent text-sm text-amber-100 placeholder:text-amber-400/30 outline-none"
                 />
               </div>
 
@@ -358,16 +358,14 @@ export default function Home() {
                   {/* Area row */}
                   <button
                     onClick={() => handleSidebarAreaClick(area)}
-                    className={`w-full flex items-center px-3 py-2.5 rounded-xl mb-0.5 text-left transition-all
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl mb-0.5 text-left transition-all
                                             ${expandedAreaId === area.id
                         ? 'bg-amber-900/30 text-amber-200'
                         : 'hover:bg-amber-900/15 text-amber-200/70'
                       }`}
                   >
-                    <span className="text-sm font-semibold flex-1 flex items-center gap-2">
-                      <span className="text-lg">{area.icon}</span>
-                      <span>{area.nameJa}</span>
-                    </span>
+                    <span className="text-lg shrink-0">{area.icon}</span>
+                    <span className="text-sm font-semibold flex-1">{area.nameJa}</span>
                     <ChevronDown
                       size={14}
                       className={`text-amber-500/50 transition-transform duration-200 ${expandedAreaId === area.id ? 'rotate-180' : ''}`}
@@ -390,13 +388,13 @@ export default function Home() {
                             {/* Country row */}
                             <button
                               onClick={() => handleSidebarCountryClick(country)}
-                              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all
+                              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-all
                                                                 ${expandedCountryCode === country.code
                                   ? 'bg-amber-800/25 text-amber-200'
                                   : 'hover:bg-amber-900/15 text-amber-300/70'
                                 }`}
                             >
-                              <span className="text-base">{country.flag}</span>
+                              <span className="text-base shrink-0">{country.flag}</span>
                               <span className="text-sm flex-1">{country.name}</span>
                               <ChevronDown
                                 size={12}
