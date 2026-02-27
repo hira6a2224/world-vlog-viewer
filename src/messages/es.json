@@ -1,0 +1,16 @@
+{
+    "Index": {
+        "title": "World Vlog Viewer",
+        "search_placeholder": "Buscar ciudad o país...",
+        "skip_button": "Siguiente",
+        "channel_link": "Ver Canal",
+        "languages": {
+            "ja": "日本語",
+            "en": "English",
+            "zh": "中文",
+            "ar": "العربية",
+            "es": "Español",
+            "fr": "Français"
+        }
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "Index": {
+        "title": "World Vlog Viewer",
+        "search_placeholder": "都市や国を検索...",
+        "skip_button": "次の動画",
+        "channel_link": "チャンネルを見る",
+        "languages": {
+            "ja": "日本語",
+            "en": "English",
+            "zh": "中文",
+            "ar": "العربية",
+            "es": "Español",
+            "fr": "Français"
+        }
+    }
+}

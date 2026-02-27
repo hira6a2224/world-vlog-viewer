@@ -1,0 +1,16 @@
+{
+    "Index": {
+        "title": "World Vlog Viewer",
+        "search_placeholder": "搜索城市或国家...",
+        "skip_button": "下一个",
+        "channel_link": "访问频道",
+        "languages": {
+            "ja": "日本語",
+            "en": "English",
+            "zh": "中文",
+            "ar": "العربية",
+            "es": "Español",
+            "fr": "Français"
+        }
+    }
+}
