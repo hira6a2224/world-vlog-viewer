@@ -40,21 +40,23 @@ export async function searchVideos(
         'dangerous', 'worst', 'scam', 'scary',
     ];
 
-    // Build search queries - we'll run 2 focused queries and merge
+    // Build tiered search queries: specific → broader fallback
     const queries: string[] = [];
 
     if (mode === 'camp') {
-        queries.push(`"${query}" Solo Camping OR Bushcraft OR Outdoor vlog`);
+        queries.push(`${query} Solo Camping OR Bushcraft OR Outdoor vlog`);
+        queries.push(`${query} camping travel`);
     } else if (mode === 'scenic') {
-        queries.push(`"${query}" drone 4K aerial view`);
-        queries.push(`"${query}" scenic cinematic travel`);
+        queries.push(`${query} drone 4K aerial view`);
+        queries.push(`${query} scenic cinematic travel`);
     } else {
-        // Vlog mode: city name is always required (quoted for exact match)
-        queries.push(`"${query}" walking tour daytime 4K`);
-        // Also add a local-language query if available
+        // Vlog mode: primary query with walking tour
+        queries.push(`${query} walking tour 4K`);
+        // Broader fallback: travel vlog (catches regions like Hokkaido)
+        queries.push(`${query} travel vlog walk`);
+        // Local-language query if available
         if (localKeywords && localKeywords.length > 0) {
-            // Include the city name with local keywords for tight relevance
-            queries.push(`"${query}" ${localKeywords[0]}`);
+            queries.push(`${query} ${localKeywords[0]}`);
         }
     }
 
@@ -64,14 +66,14 @@ export async function searchVideos(
             part: 'snippet',
             q: q,
             type: 'video',
-            order: 'relevance', // relevance instead of viewCount for better topic match
+            order: 'relevance',
             videoEmbeddable: 'true',
             videoDuration: duration,
             maxResults: String(Math.ceil(maxResults * 1.5)),
             key: apiKey,
         };
         if (regionCode) {
-            params.regionCode = regionCode; // restrict results to the target country
+            params.regionCode = regionCode;
             params.relevanceLanguage = getLanguageFromRegion(regionCode);
         }
         const res = await fetch(`${YOUTUBE_API_BASE}/search?${new URLSearchParams(params)}`);
@@ -124,9 +126,18 @@ export async function searchVideos(
         }
     }
 
-    const MIN_VIEWS = 5000; // slightly relaxed to get more relevant hits
-    const MIN_DURATION_SECONDS = 8 * 60; // 8 minutes to allow slightly shorter well-made content
+    const MIN_VIEWS = 3000;
+    const MIN_DURATION_SECONDS = 5 * 60; // 5 minutes minimum
     const queryLower = query.toLowerCase();
+
+    // Build city name variants for title matching
+    const cityNameVariants = [queryLower];
+    if (localKeywords && localKeywords.length > 0) {
+        for (const kw of localKeywords) {
+            const localCity = kw.split(/\s+/)[0].toLowerCase();
+            if (localCity.length > 1) cityNameVariants.push(localCity);
+        }
+    }
 
     const results: VideoResult[] = [];
     for (const item of allItems) {
@@ -137,27 +148,18 @@ export async function searchVideos(
         const viewCount = parseInt(details.viewCount, 10);
         const { durationSeconds } = details;
 
-        // Quality filter: viewCount and duration
+        // Quality filter
         if (viewCount < MIN_VIEWS || durationSeconds < MIN_DURATION_SECONDS) continue;
 
         const title = ((item.snippet as { title: string }).title || '').toLowerCase();
+        const description = ((item.snippet as { description: string }).description || '').toLowerCase();
         const channelTitle = ((item.snippet as { channelTitle: string }).channelTitle || '').toLowerCase();
 
-        // Title relevance filter: the video title should mention the city name
-        // (skip this for camp/scenic where the title might not contain the city name exactly)
-        if (mode === 'vlog') {
-            const cityNameVariants = [queryLower];
-            // For Japanese cities, also check common transliterations
-            if (localKeywords && localKeywords.length > 0) {
-                for (const kw of localKeywords) {
-                    // Extract the first word (likely the city name in local language)
-                    const localCity = kw.split(/\s+/)[0].toLowerCase();
-                    if (localCity.length > 1) cityNameVariants.push(localCity);
-                }
-            }
-            const titleMatchesCity = cityNameVariants.some(variant => title.includes(variant));
-            if (!titleMatchesCity) continue; // skip videos that don't mention the city
-        }
+        // Relevance filter: city name should appear in title OR description
+        const matchesCity = cityNameVariants.some(variant =>
+            title.includes(variant) || description.includes(variant)
+        );
+        if (!matchesCity) continue;
 
         // Exclude negative content
         const hasExcludedTerm = EXCLUDE_TERMS.some(term =>
