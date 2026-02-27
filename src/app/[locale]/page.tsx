@@ -253,7 +253,7 @@ export default function Home() {
             style={{ background: 'rgba(10,6,2,0.94)', borderRight: '1px solid rgba(200,160,80,0.18)' }}
           >
             {/* ── Header ── */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-amber-900/30">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-amber-900/30">
               <div className="flex items-center gap-2">
                 <span className="text-amber-400 font-black italic tracking-tighter text-xl">WORLD VLOG</span>
               </div>
@@ -263,7 +263,7 @@ export default function Home() {
             </div>
 
             {/* ── Mode Selection ── */}
-            <div className="px-4 pt-3 pb-2 flex gap-1.5">
+            <div className="px-6 pt-3 pb-2 flex gap-1.5">
               <button
                 onClick={() => setVideoMode('vlog')}
                 className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
@@ -302,16 +302,16 @@ export default function Home() {
             </div>
 
             {/* ── City Search ── */}
-            <div className="px-4 pb-2">
+            <div className="px-6 pb-2">
               <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400/50" />
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-400/50" />
                 <input
                   ref={searchRef}
                   type="text"
                   placeholder="都市を検索…"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/5 border border-amber-900/30 rounded-xl pl-9 pr-4 py-2 text-sm text-amber-100 placeholder:text-amber-400/30 outline-none focus:border-amber-600/50 transition-colors"
+                  className="w-full bg-white/5 border border-amber-900/30 rounded-xl pl-12 pr-4 py-2 text-sm text-amber-100 placeholder:text-amber-400/30 outline-none focus:border-amber-600/50 transition-colors"
                 />
               </div>
 
@@ -437,7 +437,7 @@ export default function Home() {
             </div>
 
             {/* ── Language Switcher ── */}
-            <div className="px-4 py-3 border-t border-amber-900/30 mt-auto shrink-0">
+            <div className="px-6 py-3 border-t border-amber-900/30 mt-auto shrink-0">
               <div className="flex items-center gap-1.5 mb-2">
                 <Globe size={12} className="text-amber-400/50" />
                 <p className="text-[10px] uppercase tracking-widest text-amber-400/40 font-semibold">言語 / Language</p>
