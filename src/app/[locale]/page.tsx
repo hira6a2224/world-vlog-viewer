@@ -34,7 +34,7 @@ export default function Home() {
   const [expandedAreaId, setExpandedAreaId] = useState<string | null>(null);
   const [expandedCountryCode, setExpandedCountryCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [videoMode, setVideoMode] = useState<'vlog' | 'camp' | 'scenic'>('vlog');
+  const [videoMode, setVideoMode] = useState<'vlog' | 'camp' | 'scenic'>('camp');
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Locale switching
@@ -307,44 +307,46 @@ export default function Home() {
               </button>
             </div>
 
-            {/* ── Mode Selection ── */}
-            <div className="px-5 pt-3 pb-2 flex gap-1.5">
-              <button
-                onClick={() => setVideoMode('vlog')}
-                className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
-                  ${videoMode === 'vlog'
-                    ? 'bg-amber-700/30 border-amber-500/50 text-amber-200 shadow-inner'
-                    : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
-                  }`}
-              >
-                <span className="text-xl mb-1">📹</span>
-                <span className="text-[10px] font-bold tracking-wider">VLOG</span>
-              </button>
+            {/* ── Mode Selection (Hidden for Beta to save API quota) ── */}
+            {false && (
+              <div className="px-5 pt-3 pb-2 flex gap-1.5">
+                <button
+                  onClick={() => setVideoMode('vlog')}
+                  className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
+                    ${videoMode === 'vlog'
+                      ? 'bg-amber-700/30 border-amber-500/50 text-amber-200 shadow-inner'
+                      : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
+                    }`}
+                >
+                  <span className="text-xl mb-1">📹</span>
+                  <span className="text-[10px] font-bold tracking-wider">VLOG</span>
+                </button>
 
-              <button
-                onClick={() => setVideoMode('camp')}
-                className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
-                  ${videoMode === 'camp'
-                    ? 'bg-orange-700/30 border-orange-500/50 text-orange-200 shadow-inner'
-                    : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
-                  }`}
-              >
-                <span className="text-xl mb-1">⛺</span>
-                <span className="text-[10px] font-bold tracking-wider">CAMP</span>
-              </button>
+                <button
+                  onClick={() => setVideoMode('camp')}
+                  className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
+                    ${videoMode === 'camp'
+                      ? 'bg-orange-700/30 border-orange-500/50 text-orange-200 shadow-inner'
+                      : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
+                    }`}
+                >
+                  <span className="text-xl mb-1">⛺</span>
+                  <span className="text-[10px] font-bold tracking-wider">CAMP</span>
+                </button>
 
-              <button
-                onClick={() => setVideoMode('scenic')}
-                className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
-                  ${videoMode === 'scenic'
-                    ? 'bg-sky-700/30 border-sky-500/50 text-sky-200 shadow-inner'
-                    : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
-                  }`}
-              >
-                <span className="text-xl mb-1">🚁</span>
-                <span className="text-[10px] font-bold tracking-wider">SCENIC</span>
-              </button>
-            </div>
+                <button
+                  onClick={() => setVideoMode('scenic')}
+                  className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
+                    ${videoMode === 'scenic'
+                      ? 'bg-sky-700/30 border-sky-500/50 text-sky-200 shadow-inner'
+                      : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
+                    }`}
+                >
+                  <span className="text-xl mb-1">🚁</span>
+                  <span className="text-[10px] font-bold tracking-wider">SCENIC</span>
+                </button>
+              </div>
+            )}
 
             {/* ── City Search ── */}
             <div className="px-5 pb-2">
