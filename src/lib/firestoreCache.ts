@@ -19,6 +19,8 @@ import type { VideoResult } from './youtube';
 
 const COLLECTION = 'youtube_cache';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+// Bump this version whenever search logic changes to invalidate old cached results
+const CACHE_VERSION = 2;
 
 // Encode cacheKey to a safe Firestore document ID (no '/', '.' etc.)
 function encodeDocId(key: string): string {
@@ -31,7 +33,7 @@ export function makeCacheKey(
     regionCode: string,
     mode: string,
 ): string {
-    return `${cityName}|${regionCode}|${mode}`;
+    return `v${CACHE_VERSION}|${cityName}|${regionCode}|${mode}`;
 }
 
 interface CacheDoc {
