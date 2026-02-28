@@ -53,11 +53,13 @@ export default function Home() {
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
 
-  // Video state
+  // Video Search & Player state
   const [videos, setVideos] = useState<VideoResult[]>([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // All cities flattened for search
   const allCities = useMemo(() => getAllCities(), []);
@@ -153,7 +155,44 @@ export default function Home() {
     setShowPlayer(false);
     setVideos([]);
     setCurrentVideoIndex(0);
-    setDrillLevel(selectedCountry ? 'country' : 'area');
+    setDrillLevel('country');
+  }, []);
+
+  // ── Auto-hide Controls Logic ──
+  const handleMouseMove = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 5000);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 2000); // Hide faster when mouse leaves the player area
+  }, []);
+
+  // Ensure controls are shown initially when player opens
+  useEffect(() => {
+    if (showPlayer) {
+      handleMouseMove();
+    }
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [showPlayer, handleMouseMove]);
+
+  // Sidebar back navigation
+  useEffect(() => {
+    if (!selectedCountry) {
+      setExpandedCountryCode(null);
+    }
   }, [selectedCountry]);
 
   // --- Map anywhere click: Nominatim geocode → YouTube → nearest city fallback ---
@@ -535,13 +574,13 @@ export default function Home() {
               {/* Close */}
               <button
                 onClick={handleClosePlayer}
-                className="absolute top-4 right-4 z-50 p-2 glass-panel rounded-full hover:bg-white/20 transition-colors"
+                className={`absolute top-4 right-4 z-50 p-2 glass-panel rounded-full hover:bg-white/20 transition-all duration-300 ${showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
               >
                 <X size={20} />
               </button>
 
               {/* Mode badge */}
-              <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
+              <div className={`absolute top-4 left-4 z-50 flex items-center gap-2 transition-all duration-300 ${showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                 <span className="glass-panel px-3 py-1 rounded-full text-xs font-semibold text-amber-300 flex items-center gap-1.5">
                   {videoMode === 'scenic' ? '🚁 Scenic Mode' :
                     videoMode === 'camp' ? '⛺ Camp Mode' :
@@ -555,14 +594,18 @@ export default function Home() {
               </div>
 
               {/* Player */}
-              <div className="relative w-full flex-1 min-h-0 bg-black group">
+              <div
+                className="relative w-full flex-1 min-h-0 bg-black group"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
                 <YouTubePlayerComponent
                   videoId={currentVideo.id}
                   onEnded={handleSkip}
                 />
 
                 {/* Bottom controls */}
-                <div className="absolute inset-x-0 bottom-0 p-6 md:p-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-between translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                <div className={`absolute inset-x-0 bottom-0 p-6 md:p-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-between transition-all duration-500 ${showControls ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                   <div className="space-y-1 max-w-[60%]">
                     <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-white line-clamp-2">
                       {currentVideo.title}
