@@ -531,7 +531,7 @@ export default function Home() {
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="absolute inset-0 z-[1700] flex items-center justify-center p-3 md:p-12"
           >
-            <div className="relative w-full h-full max-w-6xl glass-panel rounded-2xl md:rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.7)] border border-amber-900/30">
+            <div className="relative w-full h-full max-w-6xl glass-panel rounded-2xl md:rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.7)] border border-amber-900/30 flex flex-col">
               {/* Close */}
               <button
                 onClick={handleClosePlayer}
@@ -555,7 +555,7 @@ export default function Home() {
               </div>
 
               {/* Player */}
-              <div className="relative w-full h-full group">
+              <div className="relative w-full flex-1 min-h-0 bg-black group">
                 <YouTubePlayerComponent
                   videoId={currentVideo.id}
                   onEnded={handleSkip}
@@ -596,6 +596,17 @@ export default function Home() {
                       {t('skip_button')}
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Affiliate Link Reservation Area */}
+              <div className="w-full h-20 md:h-24 bg-neutral-900 border-t border-white/10 flex items-center justify-center p-4">
+                <div className="text-center">
+                  <span className="text-sm md:text-base font-medium text-white/40 mb-1 block">
+                    {/* Placeholder for future Affiliate links (e.g. Booking.com, Amazon) */}
+                    ✨ {videoMode === 'camp' ? 'Check out gear used in this video' : `Find the best hotels in ${selectedCity?.nameJa}`}
+                  </span>
+                  <div className="w-48 h-2 bg-white/5 rounded-full mx-auto" />
                 </div>
               </div>
             </div>
