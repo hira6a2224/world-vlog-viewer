@@ -18,9 +18,9 @@ import {
 import type { VideoResult } from './youtube';
 
 const COLLECTION = 'youtube_cache';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days (extended to save API quota)
 // Bump this version whenever search logic changes to invalidate old cached results
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
 // Encode cacheKey to a safe Firestore document ID (no '/', '.' etc.)
 function encodeDocId(key: string): string {

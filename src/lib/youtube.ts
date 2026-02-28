@@ -60,131 +60,136 @@ export async function searchVideos(
         queries.push(`${query} travel vlog walk`);
     }
 
-    // Fetch videos for a single query + duration combo
-    const fetchPage = async (q: string, duration: 'medium' | 'long') => {
+    // Helper to fetch and filter a single query
+    const fetchAndFilter = async (q: string): Promise<VideoResult[]> => {
         const params: Record<string, string> = {
             part: 'snippet',
             q: q,
             type: 'video',
             order: 'relevance',
             videoEmbeddable: 'true',
-            videoDuration: duration,
-            maxResults: String(Math.ceil(maxResults * 1.5)),
+            // videoDuration removed: fetching all lengths at once saves 50% API quota
+            maxResults: String(maxResults * 2), // fetch extra to account for filtering
             key: apiKey,
         };
         if (regionCode) {
             params.regionCode = regionCode;
             params.relevanceLanguage = getLanguageFromRegion(regionCode);
         }
+
         const res = await fetch(`${YOUTUBE_API_BASE}/search?${new URLSearchParams(params)}`);
-        if (!res.ok) {
-            throw new Error(`YouTube Search API error: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`YouTube Search API error: ${res.status}`);
         const data = await res.json();
-        return data.items ?? [];
+        const items = data.items ?? [];
+        if (items.length === 0) return [];
+
+        // Get detailed video info: statistics + contentDetails (for duration)
+        const videoIds = items.map((item: any) => item.id.videoId).join(',');
+        const detailsParams = new URLSearchParams({
+            part: 'statistics,contentDetails',
+            id: videoIds,
+            key: apiKey,
+        });
+        const detailsRes = await fetch(`${YOUTUBE_API_BASE}/videos?${detailsParams}`);
+        const detailsData = await detailsRes.json();
+
+        const detailsMap: Record<string, { viewCount: string; durationSeconds: number }> = {};
+        if (detailsData.items) {
+            for (const item of detailsData.items) {
+                detailsMap[item.id] = {
+                    viewCount: item.statistics?.viewCount || '0',
+                    durationSeconds: parseDuration(item.contentDetails?.duration || ''),
+                };
+            }
+        }
+
+        const MIN_VIEWS = 3000;
+        const MIN_DURATION_SECONDS = 5 * 60; // 5 minutes minimum
+
+        // Build city name variants for title matching
+        const queryLower = query.toLowerCase();
+        const cityNameVariants = [queryLower];
+        if (localKeywords && localKeywords.length > 0) {
+            for (const kw of localKeywords) {
+                const localCity = kw.split(/\s+/)[0].toLowerCase();
+                if (localCity.length > 1) cityNameVariants.push(localCity);
+            }
+        }
+
+        const results: VideoResult[] = [];
+        for (const item of items) {
+            const vid = item.id.videoId;
+            const details = detailsMap[vid];
+            if (!details) continue;
+
+            const viewCount = parseInt(details.viewCount, 10);
+            const { durationSeconds } = details;
+
+            // Quality filter
+            if (viewCount < MIN_VIEWS || durationSeconds < MIN_DURATION_SECONDS) continue;
+
+            const title = ((item.snippet as { title: string }).title || '').toLowerCase();
+            const description = ((item.snippet as { description: string }).description || '').toLowerCase();
+            const channelTitle = ((item.snippet as { channelTitle: string }).channelTitle || '').toLowerCase();
+
+            // Relevance filter: city name should appear in title OR description
+            const matchesCity = cityNameVariants.some(variant =>
+                title.includes(variant) || description.includes(variant)
+            );
+
+            if (!matchesCity) continue;
+
+            // Negative filter: exclude nightlife, dangerous areas, etc.
+            const hasNegativeTerm = EXCLUDE_TERMS.some(term =>
+                title.includes(term) || description.includes(term)
+            );
+
+            if (hasNegativeTerm) continue;
+
+            results.push({
+                id: vid,
+                title: (item.snippet as any).title,
+                channelId: (item.snippet as any).channelId,
+                channelTitle: (item.snippet as any).channelTitle,
+                publishedAt: (item.snippet as any).publishedAt,
+                thumbnail: (item.snippet as any).thumbnails?.high?.url || (item.snippet as any).thumbnails?.default?.url,
+                viewCount: details.viewCount,
+                durationSeconds,
+            });
+        }
+
+        return results;
     };
 
-    // Run all query + duration combinations in parallel
-    const fetchPromises = queries.flatMap(q => [
-        fetchPage(q, 'medium'),
-        fetchPage(q, 'long'),
-    ]);
-    const allResults = await Promise.all(fetchPromises);
+    // ── Lazy Fetching: Run queries sequentially ──
+    // If the first (most specific) query returns enough good results, we don't even run the fallbacks.
+    const finalResults: VideoResult[] = [];
+    const seenVids = new Set<string>();
 
-    // Merge and de-duplicate by video ID
-    const seen = new Set<string>();
-    const allItems: Array<{ id: { videoId: string }; snippet: Record<string, unknown> }> = [];
-    for (const items of allResults) {
-        for (const item of items) {
-            const vid = item.id?.videoId;
-            if (vid && !seen.has(vid)) {
-                seen.add(vid);
-                allItems.push(item);
+    for (const q of queries) {
+        if (finalResults.length >= maxResults) break; // We have enough! Stop wasting API quota.
+        try {
+            const batch = await fetchAndFilter(q);
+            for (const video of batch) {
+                if (!seenVids.has(video.id)) {
+                    seenVids.add(video.id);
+                    finalResults.push(video);
+                }
+            }
+        } catch (err) {
+            console.error(`Error fetching query "${q}":`, err);
+            // If it's a quota error, we should probably abort entirely instead of trying the next query
+            if (err instanceof Error && (err.message.includes('403') || err.message.includes('quota'))) {
+                throw err;
             }
         }
     }
 
-    if (allItems.length === 0) return [];
+    // Sort by relevance (we rely on YouTube's inherent relevance sorting from the API, 
+    // but if we mixed queries we just keep the order they were found in, 
+    // which naturally prioritizes the first, most specific query.)
 
-    // Get detailed video info: statistics + contentDetails (for duration)
-    const videoIds = allItems.map(item => item.id.videoId).join(',');
-    const detailsParams = new URLSearchParams({
-        part: 'statistics,contentDetails',
-        id: videoIds,
-        key: apiKey,
-    });
-    const detailsRes = await fetch(`${YOUTUBE_API_BASE}/videos?${detailsParams}`);
-    const detailsData = await detailsRes.json();
-
-    const detailsMap: Record<string, { viewCount: string; durationSeconds: number }> = {};
-    if (detailsData.items) {
-        for (const item of detailsData.items) {
-            detailsMap[item.id] = {
-                viewCount: item.statistics?.viewCount || '0',
-                durationSeconds: parseDuration(item.contentDetails?.duration || ''),
-            };
-        }
-    }
-
-    const MIN_VIEWS = 3000;
-    const MIN_DURATION_SECONDS = 5 * 60; // 5 minutes minimum
-    const queryLower = query.toLowerCase();
-
-    // Build city name variants for title matching
-    const cityNameVariants = [queryLower];
-    if (localKeywords && localKeywords.length > 0) {
-        for (const kw of localKeywords) {
-            const localCity = kw.split(/\s+/)[0].toLowerCase();
-            if (localCity.length > 1) cityNameVariants.push(localCity);
-        }
-    }
-
-    const results: VideoResult[] = [];
-    for (const item of allItems) {
-        const vid = item.id.videoId;
-        const details = detailsMap[vid];
-        if (!details) continue;
-
-        const viewCount = parseInt(details.viewCount, 10);
-        const { durationSeconds } = details;
-
-        // Quality filter
-        if (viewCount < MIN_VIEWS || durationSeconds < MIN_DURATION_SECONDS) continue;
-
-        const title = ((item.snippet as { title: string }).title || '').toLowerCase();
-        const description = ((item.snippet as { description: string }).description || '').toLowerCase();
-        const channelTitle = ((item.snippet as { channelTitle: string }).channelTitle || '').toLowerCase();
-
-        // Relevance filter: city name should appear in title OR description
-        const matchesCity = cityNameVariants.some(variant =>
-            title.includes(variant) || description.includes(variant)
-        );
-        if (!matchesCity) continue;
-
-        // Exclude negative content
-        const hasExcludedTerm = EXCLUDE_TERMS.some(term =>
-            title.includes(term.toLowerCase()) || channelTitle.includes(term.toLowerCase())
-        );
-        if (hasExcludedTerm) continue;
-
-        results.push({
-            id: vid,
-            title: (item.snippet as { title: string }).title,
-            channelTitle: (item.snippet as { channelTitle: string }).channelTitle,
-            channelId: (item.snippet as { channelId: string }).channelId,
-            thumbnail: (item.snippet as { thumbnails: { high: { url: string } } }).thumbnails?.high?.url || '',
-            viewCount: details.viewCount,
-            publishedAt: (item.snippet as { publishedAt: string }).publishedAt,
-            durationSeconds,
-        });
-
-        if (results.length >= maxResults) break;
-    }
-
-    // Sort results by view count descending (best videos first among filtered set)
-    results.sort((a, b) => parseInt(b.viewCount, 10) - parseInt(a.viewCount, 10));
-
-    return results;
+    return finalResults.slice(0, maxResults);
 }
 
 // Map YouTube regionCode to a primary language for relevanceLanguage
