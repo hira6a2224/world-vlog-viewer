@@ -13,6 +13,12 @@ import {
     doc,
     getDoc,
     setDoc,
+    updateDoc,
+    increment,
+    collection,
+    getDocs,
+    query,
+    where,
     type Firestore,
 } from 'firebase/firestore';
 import type { VideoResult } from './youtube';
@@ -95,5 +101,65 @@ export async function setCachedVideos(
     } catch (err) {
         // Don't break the response if caching fails
         console.error('[firestore] setCachedVideos error:', err);
+    }
+}
+
+// ── Video Ratings ────────────────────────────────────────────────────────────
+export interface VideoRating {
+    likes: number;
+    dislikes: number;
+}
+
+export async function rateVideo(
+    db: Firestore,
+    videoId: string,
+    isGood: boolean
+): Promise<void> {
+    try {
+        const ref = doc(db, 'video_ratings', videoId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+            await updateDoc(ref, {
+                [isGood ? 'likes' : 'dislikes']: increment(1),
+            });
+        } else {
+            await setDoc(ref, {
+                likes: isGood ? 1 : 0,
+                dislikes: isGood ? 0 : 1,
+            });
+        }
+    } catch (err) {
+        console.error('[firestore] rateVideo error:', err);
+    }
+}
+
+export async function getVideoRatings(
+    db: Firestore,
+    videoIds: string[],
+): Promise<Record<string, VideoRating>> {
+    if (videoIds.length === 0) return {};
+    try {
+        const ratingsMap: Record<string, VideoRating> = {};
+        // Firestore 'in' query supports up to 10 elements
+        const chunks = [];
+        for (let i = 0; i < videoIds.length; i += 10) {
+            chunks.push(videoIds.slice(i, i + 10));
+        }
+
+        for (const chunk of chunks) {
+            const q = query(collection(db, 'video_ratings'), where('__name__', 'in', chunk));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                ratingsMap[docSnap.id] = {
+                    likes: data.likes || 0,
+                    dislikes: data.dislikes || 0,
+                };
+            });
+        }
+        return ratingsMap;
+    } catch (err) {
+        console.error('[firestore] getVideoRatings error:', err);
+        return {};
     }
 }

@@ -6,7 +6,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchVideos, type VideoResult } from '@/lib/youtube';
 import { db } from '@/lib/firebase';
-import { makeCacheKey, getCachedVideos, setCachedVideos } from '@/lib/firestoreCache';
+import { makeCacheKey, getCachedVideos, setCachedVideos, getVideoRatings } from '@/lib/firestoreCache';
+
+async function attachRatingsAndSort(videos: VideoResult[], firestoreDb: any): Promise<VideoResult[]> {
+    if (!videos || videos.length === 0) return videos;
+    const videoIds = videos.map(v => v.id);
+    const ratingsMap = await getVideoRatings(firestoreDb, videoIds);
+
+    const ratedVideos = videos.map(vid => {
+        const r = ratingsMap[vid.id] || { likes: 0, dislikes: 0 };
+        const score = r.likes - r.dislikes;
+        return {
+            ...vid,
+            ratings: { ...r, score }
+        };
+    });
+
+    // Sort descending by score. Stable sort is approximated here.
+    // To keep original order for zero scores, we can just return bScore - aScore
+    // because JS sort is stable in modern engines.
+    ratedVideos.sort((a, b) => {
+        const aScore = a.ratings?.score || 0;
+        const bScore = b.ratings?.score || 0;
+        return bScore - aScore;
+    });
+
+    return ratedVideos;
+}
 
 // ── In-Memory Cache ──────────────────────────────────────────────────────────
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -82,7 +108,8 @@ export async function GET(request: NextRequest) {
     if (memCached && memCached.expiresAt > Date.now()) {
         memCached.hits++;
         console.info(`[memory HIT]    "${query}" (hits: ${memCached.hits})`);
-        return NextResponse.json({ videos: memCached.videos, fromCache: 'memory' });
+        const finalVideos = await attachRatingsAndSort(memCached.videos, db);
+        return NextResponse.json({ videos: finalVideos, fromCache: 'memory' });
     }
 
     // ── ② Firestore Cache lookup ──
@@ -93,7 +120,8 @@ export async function GET(request: NextRequest) {
         // Warm up the in-memory cache from Firestore result
         evictExpiredOrOldest();
         cache.set(memKey, { videos: fsVideos, expiresAt: Date.now() + CACHE_TTL_MS, hits: 1 });
-        return NextResponse.json({ videos: fsVideos, fromCache: 'firestore' });
+        const finalVideos = await attachRatingsAndSort(fsVideos, db);
+        return NextResponse.json({ videos: finalVideos, fromCache: 'firestore' });
     }
 
     // ── ③ Cache miss → call YouTube API ──
@@ -116,7 +144,8 @@ export async function GET(request: NextRequest) {
             console.warn(`[NO RESULTS]    "${query}" — not caching empty result`);
         }
 
-        return NextResponse.json({ videos, fromCache: false });
+        const finalVideos = await attachRatingsAndSort(videos, db);
+        return NextResponse.json({ videos: finalVideos, fromCache: false });
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : String(error);
         console.error(`YouTube API error for "${query}": ${errMsg}`);

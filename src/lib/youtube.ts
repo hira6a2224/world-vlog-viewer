@@ -11,6 +11,7 @@ export interface VideoResult {
     viewCount: string;
     publishedAt: string;
     durationSeconds: number;
+    ratings?: { likes: number; dislikes: number; score: number };
 }
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';

@@ -4,7 +4,8 @@ import { useTranslations } from 'next-intl';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   SkipForward, ExternalLink, X, Loader2, ChevronLeft,
-  ChevronRight, ChevronDown, Menu, Search, Globe
+  ChevronRight, ChevronDown, Menu, Search, Globe,
+  ThumbsUp, ThumbsDown
 } from 'lucide-react';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -60,6 +61,40 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [ratedVideos, setRatedVideos] = useState<Set<string>>(new Set());
+
+  const handleRate = useCallback(async (isGood: boolean) => {
+    if (!currentVideo || ratedVideos.has(currentVideo.id)) return;
+
+    const vidId = currentVideo.id;
+    // Optimistic update
+    setRatedVideos(prev => new Set(prev).add(vidId));
+    setVideos(prev => prev.map(v => {
+      if (v.id === vidId) {
+        const r = v.ratings || { likes: 0, dislikes: 0, score: 0 };
+        return {
+          ...v,
+          ratings: {
+            ...r,
+            likes: r.likes + (isGood ? 1 : 0),
+            dislikes: r.dislikes + (!isGood ? 1 : 0)
+          }
+        };
+      }
+      return v;
+    }));
+
+    // API call
+    try {
+      await fetch('/api/rate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: vidId, isGood })
+      });
+    } catch (err) {
+      console.error('Failed to rate', err);
+    }
+  }, [videos, currentVideoIndex, ratedVideos]);
 
   // All cities flattened for search
   const allCities = useMemo(() => getAllCities(), []);
@@ -157,6 +192,28 @@ export default function Home() {
     setCurrentVideoIndex(0);
     setDrillLevel('country');
   }, []);
+
+  const handleRandomPlay = useCallback(async () => {
+    setIsLoading(true);
+    setSidebarOpen(false);
+    try {
+      const res = await fetch(`/api/random?mode=${videoMode}&count=15`);
+      const data = await res.json();
+      if (data.videos && data.videos.length > 0) {
+        setVideos(data.videos);
+        setCurrentVideoIndex(0);
+        setShowPlayer(true);
+        setDrillLevel('video');
+      } else {
+        alert(t('no_videos_desc') || 'No videos found in cache.');
+      }
+    } catch (err) {
+      console.error('Failed to fetch random videos', err);
+      alert('Failed to connect to video server.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [videoMode, t]);
 
   // ── Auto-hide Controls Logic ──
   const handleMouseMove = useCallback(() => {
@@ -348,6 +405,17 @@ export default function Home() {
                 </button>
               </div>
             )}
+
+            {/* ── Random Play ── */}
+            <div className="px-5 pt-3 pb-2">
+              <button
+                onClick={handleRandomPlay}
+                className="w-full flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-white rounded-xl shadow-[0_0_15px_rgba(217,119,6,0.2)] font-bold transition-all border border-amber-500/50"
+              >
+                <span className="text-xl leading-none">🎲</span>
+                <span>Random Best Videos</span>
+              </button>
+            </div>
 
             {/* ── City Search ── */}
             <div className="px-5 pb-2">
@@ -621,6 +689,20 @@ export default function Home() {
                       <span>⏱ {formatDuration(currentVideo.durationSeconds)}</span>
                       <span className="w-1 h-1 rounded-full bg-white/30" />
                       <span className="text-xs">{currentVideoIndex + 1} / {videos.length}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRate(true); }}
+                        disabled={ratedVideos.has(currentVideo.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all text-xs font-semibold ${ratedVideos.has(currentVideo.id) ? 'border-white/10 text-white/40 bg-white/5' : 'border-white/30 text-white hover:bg-white/20 hover:border-white/50 shadow-md'}`}>
+                        <ThumbsUp size={14} className={ratedVideos.has(currentVideo.id) ? '' : 'text-green-400'} /> {currentVideo.ratings?.likes || 0}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRate(false); }}
+                        disabled={ratedVideos.has(currentVideo.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all text-xs font-semibold ${ratedVideos.has(currentVideo.id) ? 'border-white/10 text-white/40 bg-white/5' : 'border-white/30 text-white hover:bg-white/20 hover:border-white/50 shadow-md'}`}>
+                        <ThumbsDown size={14} className={ratedVideos.has(currentVideo.id) ? '' : 'text-red-400'} /> {currentVideo.ratings?.dislikes || 0}
+                      </button>
                     </div>
                   </div>
 
