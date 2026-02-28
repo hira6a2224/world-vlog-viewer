@@ -44,8 +44,8 @@ export async function searchVideos(
     const queries: string[] = [];
 
     if (mode === 'camp') {
-        queries.push(`${query} Solo Camping OR Bushcraft OR Outdoor vlog`);
-        queries.push(`${query} camping travel`);
+        queries.push(`${query} ASMR camping OR relaxing campfire OR nature sounds`);
+        queries.push(`${query} solo camping healing vlog`);
     } else if (mode === 'scenic') {
         queries.push(`${query} drone 4K aerial view`);
         queries.push(`${query} scenic cinematic travel`);
