@@ -113,9 +113,15 @@ export default function Home() {
         setVideos(data.videos);
         setCurrentVideoIndex(0);
         setShowPlayer(true);
+      } else {
+        // Show a brief notification when no videos found
+        setDrillLevel('country');
+        alert(data.error || `No videos found for ${city.name}. Try again later.`);
       }
     } catch (err) {
       console.error('Failed to fetch videos:', err);
+      setDrillLevel('country');
+      alert('Failed to connect to video server. Please try again later.');
     } finally {
       setIsLoading(false);
     }

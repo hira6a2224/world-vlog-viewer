@@ -102,25 +102,29 @@ export async function GET(request: NextRequest) {
     try {
         const videos = await searchVideos(query, apiKey, maxResults, localKeywords, regionCode, mode);
 
-        // Save to Firestore (persistent)
-        await setCachedVideos(db, fsKey, videos);
-
-        // Save to in-memory (fast)
-        evictExpiredOrOldest();
-        cache.set(memKey, {
-            videos,
-            expiresAt: Date.now() + CACHE_TTL_MS,
-            hits: 0,
-        });
-
-        console.info(`[cache SET]     "${query}" (${videos.length} videos) — mem: ${cache.size}/${CACHE_MAX_ITEMS}`);
+        // Only cache non-empty results — empty results should be retried later
+        if (videos.length > 0) {
+            await setCachedVideos(db, fsKey, videos);
+            evictExpiredOrOldest();
+            cache.set(memKey, {
+                videos,
+                expiresAt: Date.now() + CACHE_TTL_MS,
+                hits: 0,
+            });
+            console.info(`[cache SET]     "${query}" (${videos.length} videos) — mem: ${cache.size}/${CACHE_MAX_ITEMS}`);
+        } else {
+            console.warn(`[NO RESULTS]    "${query}" — not caching empty result`);
+        }
 
         return NextResponse.json({ videos, fromCache: false });
     } catch (error) {
-        console.error('YouTube API error:', error);
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error(`YouTube API error for "${query}": ${errMsg}`);
+        // If quota exceeded, return a specific error so frontend can show a message
+        const isQuota = errMsg.includes('403') || errMsg.includes('quota');
         return NextResponse.json(
-            { error: 'Failed to fetch videos' },
-            { status: 500 }
+            { error: isQuota ? 'API quota exceeded. Please try again later.' : 'Failed to fetch videos', videos: [] },
+            { status: isQuota ? 429 : 500 }
         );
     }
 }

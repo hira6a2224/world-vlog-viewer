@@ -50,14 +50,14 @@ export async function searchVideos(
         queries.push(`${query} drone 4K aerial view`);
         queries.push(`${query} scenic cinematic travel`);
     } else {
-        // Vlog mode: primary query with walking tour
-        queries.push(`${query} walking tour 4K`);
+        // Vlog mode: combine walking tour with local keywords for tight relevance
+        if (localKeywords && localKeywords.length > 0) {
+            queries.push(`${query} walking tour 4K ${localKeywords[0]}`);
+        } else {
+            queries.push(`${query} walking tour 4K`);
+        }
         // Broader fallback: travel vlog (catches regions like Hokkaido)
         queries.push(`${query} travel vlog walk`);
-        // Local-language query if available
-        if (localKeywords && localKeywords.length > 0) {
-            queries.push(`${query} ${localKeywords[0]}`);
-        }
     }
 
     // Fetch videos for a single query + duration combo
