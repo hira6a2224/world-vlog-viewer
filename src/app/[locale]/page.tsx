@@ -34,7 +34,7 @@ export default function Home() {
   const [expandedAreaId, setExpandedAreaId] = useState<string | null>(null);
   const [expandedCountryCode, setExpandedCountryCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [videoMode, setVideoMode] = useState<'vlog' | 'camp' | 'scenic'>('camp');
+  const [videoMode, setVideoMode] = useState<'vlog' | 'camp' | 'scenic'>('scenic');
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Locale switching
