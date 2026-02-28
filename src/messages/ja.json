@@ -1,16 +1,17 @@
 {
-    "Index": {
-        "title": "World Vlog Viewer",
-        "search_placeholder": "都市や国を検索...",
-        "skip_button": "次の動画",
-        "channel_link": "チャンネルを見る",
-        "languages": {
-            "ja": "日本語",
-            "en": "English",
-            "zh": "中文",
-            "ar": "العربية",
-            "es": "Español",
-            "fr": "Français"
-        }
+  "Index": {
+    "title": "World Vlog Viewer",
+    "search_placeholder": "都市や国を検索...",
+    "skip_button": "次の動画",
+    "channel_link": "チャンネルを見る",
+    "languages": {
+      "ja": "日本語",
+      "en": "English",
+      "zh": "中文",
+      "ar": "العربية",
+      "es": "Español",
+      "fr": "Français"
     }
+  },
+  "map_click_disabled": "現在プレ版のため、地図の直接クリックによる検索は開放していません。左側のエリア・都市選択からお楽しみください！"
 }

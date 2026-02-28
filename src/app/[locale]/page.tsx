@@ -202,7 +202,8 @@ export default function Home() {
     // Don't fire if player is open
     if (showPlayer) return;
 
-    setIsLoading(true);
+    alert(t('map_click_disabled'));
+    return;
     setMapClickLocation(null);
     setSidebarOpen(false);
 

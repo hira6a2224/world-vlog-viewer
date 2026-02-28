@@ -1,16 +1,17 @@
 {
-    "Index": {
-        "title": "World Vlog Viewer",
-        "search_placeholder": "ابحث عن مدينة أو دولة...",
-        "skip_button": "التالي",
-        "channel_link": "زيارة القناة",
-        "languages": {
-            "ja": "日本語",
-            "en": "English",
-            "zh": "中文",
-            "ar": "العربية",
-            "es": "Español",
-            "fr": "Français"
-        }
+  "Index": {
+    "title": "World Vlog Viewer",
+    "search_placeholder": "ابحث عن مدينة أو دولة...",
+    "skip_button": "التالي",
+    "channel_link": "زيارة القناة",
+    "languages": {
+      "ja": "日本語",
+      "en": "English",
+      "zh": "中文",
+      "ar": "العربية",
+      "es": "Español",
+      "fr": "Français"
     }
+  },
+  "map_click_disabled": "تم تعطيل البحث المباشر على الخريطة في الإصدار التجريبي. يرجى استخدام تحديد المنطقة/المدينة على اليسار!"
 }

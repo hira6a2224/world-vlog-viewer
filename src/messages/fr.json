@@ -1,16 +1,17 @@
 {
-    "Index": {
-        "title": "World Vlog Viewer",
-        "search_placeholder": "Rechercher une ville ou un pays...",
-        "skip_button": "Suivant",
-        "channel_link": "Voir la chaîne",
-        "languages": {
-            "ja": "日本語",
-            "en": "English",
-            "zh": "中文",
-            "ar": "العربية",
-            "es": "Español",
-            "fr": "Français"
-        }
+  "Index": {
+    "title": "World Vlog Viewer",
+    "search_placeholder": "Rechercher une ville ou un pays...",
+    "skip_button": "Suivant",
+    "channel_link": "Voir la chaîne",
+    "languages": {
+      "ja": "日本語",
+      "en": "English",
+      "zh": "中文",
+      "ar": "العربية",
+      "es": "Español",
+      "fr": "Français"
     }
+  },
+  "map_click_disabled": "La recherche directe sur la carte est désactivée dans la version préliminaire. Veuillez utiliser la sélection de zone/ville à gauche !"
 }
