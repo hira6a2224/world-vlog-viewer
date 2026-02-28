@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-interface YouTubePlayerProps {
+export interface YouTubePlayerProps {
     videoId: string;
     onEnded?: () => void;
+    onPlay?: () => void;
+    onPause?: () => void;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -15,7 +17,7 @@ declare global {
     }
 }
 
-export default function YouTubePlayer({ videoId, onEnded }: YouTubePlayerProps) {
+export default function YouTubePlayer({ videoId, onEnded, onPlay, onPause }: YouTubePlayerProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const playerRef = useRef<any>(null);
     const [isReady, setIsReady] = useState(false);
@@ -55,6 +57,10 @@ export default function YouTubePlayer({ videoId, onEnded }: YouTubePlayerProps) 
                     onStateChange: (event: any) => {
                         if (event.data === window.YT.PlayerState.ENDED && onEnded) {
                             onEnded();
+                        } else if (event.data === window.YT.PlayerState.PLAYING && onPlay) {
+                            onPlay();
+                        } else if (event.data === window.YT.PlayerState.PAUSED && onPause) {
+                            onPause();
                         }
                     },
                 },

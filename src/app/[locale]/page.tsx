@@ -60,6 +60,7 @@ export default function Home() {
   const [showPlayer, setShowPlayer] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [ratedVideos, setRatedVideos] = useState<Set<string>>(new Set());
 
@@ -221,19 +222,23 @@ export default function Home() {
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
-    controlsTimeoutRef.current = setTimeout(() => {
-      setShowControls(false);
-    }, 5000);
-  }, []);
+    if (!isPaused) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 5000);
+    }
+  }, [isPaused]);
 
   const handleMouseLeave = useCallback(() => {
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
-    controlsTimeoutRef.current = setTimeout(() => {
-      setShowControls(false);
-    }, 2000); // Hide faster when mouse leaves the player area
-  }, []);
+    if (!isPaused) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 2000); // Hide faster when mouse leaves the player area
+    }
+  }, [isPaused]);
 
   // Ensure controls are shown initially when player opens
   useEffect(() => {
@@ -645,13 +650,13 @@ export default function Home() {
               {/* Close */}
               <button
                 onClick={handleClosePlayer}
-                className={`absolute top-4 right-4 z-50 p-2 glass-panel rounded-full hover:bg-white/20 transition-all duration-300 ${showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                className={`absolute top-4 right-4 z-50 p-2 glass-panel rounded-full hover:bg-white/20 transition-all duration-300 ${showControls || isPaused ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
               >
                 <X size={20} />
               </button>
 
               {/* Mode badge */}
-              <div className={`absolute top-4 left-4 z-50 flex items-center gap-2 transition-all duration-300 ${showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+              <div className={`absolute top-4 left-4 z-50 flex items-center gap-2 transition-all duration-300 ${showControls || isPaused ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                 <span className="glass-panel px-3 py-1 rounded-full text-xs font-semibold text-amber-300 flex items-center gap-1.5">
                   {videoMode === 'scenic' ? '🚁 Scenic Mode' :
                     videoMode === 'camp' ? '⛺ Camp Mode' :
@@ -673,10 +678,20 @@ export default function Home() {
                 <YouTubePlayerComponent
                   videoId={currentVideo.id}
                   onEnded={handleSkip}
+                  onPlay={() => {
+                    setIsPaused(false);
+                    // trigger mouse move to start the hide timeout again
+                    handleMouseMove();
+                  }}
+                  onPause={() => {
+                    setIsPaused(true);
+                    setShowControls(true);
+                    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+                  }}
                 />
 
                 {/* Bottom controls */}
-                <div className={`absolute inset-x-0 bottom-0 p-6 md:p-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-between transition-all duration-500 ${showControls ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                <div className={`absolute inset-x-0 bottom-0 p-6 md:p-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-between transition-all duration-500 ${showControls || isPaused ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                   <div className="space-y-1 max-w-[60%]">
                     <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-white line-clamp-2">
                       {currentVideo.title}
