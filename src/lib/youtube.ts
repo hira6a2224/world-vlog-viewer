@@ -44,8 +44,10 @@ export async function searchVideos(
     const queries: string[] = [];
 
     if (mode === 'camp') {
-        queries.push(`${query} ASMR camping OR relaxing campfire OR nature sounds`);
-        queries.push(`${query} solo camping healing vlog`);
+        // Priority 1: Must be Camping WITH ASMR/Healing/Nature aspects
+        queries.push(`${query} camping vlog ASMR OR relaxing campfire`);
+        // Priority 2: Fallback to high-quality pure camping vlogs if ASMR ones fail
+        queries.push(`${query} solo camping outdoor`);
     } else if (mode === 'scenic') {
         queries.push(`${query} drone 4K aerial view`);
         queries.push(`${query} scenic cinematic travel`);
