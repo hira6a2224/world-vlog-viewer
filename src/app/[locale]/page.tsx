@@ -1,7 +1,7 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import { useRouter, usePathname } from '@/i18n/routing';
 import {
   SkipForward, ExternalLink, X, Loader2, ChevronLeft,
   ChevronRight, ChevronDown, Menu, Search, Globe,
@@ -41,12 +41,14 @@ export default function Home() {
   // Locale switching
   const router = useRouter();
   const pathname = usePathname();
-  const currentLocale = pathname.split('/')[1] || 'en';
+  const currentLocale = useLocale();
   const switchLocale = useCallback((locale: string) => {
-    const segments = pathname.split('/');
-    segments[1] = locale;
-    router.push(segments.join('/') || `/${locale}`);
-  }, [pathname, router]);
+    // Hard navigation to force server re-render with new locale messages.
+    // router.replace() does client-side navigation which doesn't always
+    // re-execute the server layout to load new locale messages in Next.js 16.
+    const newPath = `/${locale}${pathname === '/' ? '' : pathname}`;
+    window.location.href = newPath;
+  }, [pathname]);
 
   // Drill-down map state
   const [drillLevel, setDrillLevel] = useState<DrillLevel>('area');
@@ -103,12 +105,12 @@ export default function Home() {
   const filteredCities = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
-    return allCities.filter(c =>
-      c.name.toLowerCase().includes(q) ||
-      c.nameJa.includes(searchQuery) ||
-      c.countryName.toLowerCase().includes(q)
-    ).slice(0, 8);
-  }, [searchQuery, allCities]);
+    return allCities.filter(c => {
+      const cityName = t(`cities.${c.id}`).toLowerCase();
+      const cnName = t(`countries.${c.countryCode || c.regionCode}`).toLowerCase();
+      return cityName.includes(q) || cnName.includes(q);
+    }).slice(0, 8);
+  }, [searchQuery, allCities, t]);
 
   // Close sidebar on outside click
   useEffect(() => {
@@ -138,11 +140,12 @@ export default function Home() {
     setSearchQuery('');
 
     try {
+      const localKeywordStr = `${t(`cities.${city.id}`)} ${t('search_keyword')}`;
       const params = new URLSearchParams({
-        q: city.name,
+        q: t(`cities.${city.id}`),
         maxResults: '8',
         regionCode: country.regionCode,
-        localKeywords: JSON.stringify(city.localKeywords),
+        localKeywords: JSON.stringify([localKeywordStr, ...city.localKeywords]),
         mode: videoMode,
       });
       const res = await fetch(`/api/youtube?${params}`);
@@ -154,16 +157,16 @@ export default function Home() {
       } else {
         // Show a brief notification when no videos found
         setDrillLevel('country');
-        alert(data.error || `No videos found for ${city.name}. Try again later.`);
+        alert(data.error || t('no_videos_found_city', { city: t(`cities.${city.id}`) }));
       }
     } catch (err) {
       console.error('Failed to fetch videos:', err);
       setDrillLevel('country');
-      alert('Failed to connect to video server. Please try again later.');
+      alert(t('error_connection'));
     } finally {
       setIsLoading(false);
     }
-  }, [videoMode]);
+  }, [videoMode, t]);
 
   // Sidebar area/country click also triggers map
   const handleSidebarAreaClick = useCallback((area: Area) => {
@@ -206,11 +209,11 @@ export default function Home() {
         setShowPlayer(true);
         setDrillLevel('video');
       } else {
-        alert(t('no_videos_desc') || 'No videos found in cache.');
+        alert(t('no_videos_desc'));
       }
     } catch (err) {
       console.error('Failed to fetch random videos', err);
-      alert('Failed to connect to video server.');
+      alert(t('error_connection'));
     } finally {
       setIsLoading(false);
     }
@@ -284,14 +287,16 @@ export default function Home() {
       const countryCode: string = (addr.country_code ?? '').toUpperCase();
 
       setMapClickLocation(cityName);
-      setSelectedCity({ name: cityName, nameJa: cityName, lat, lng, localKeywords: [] });
+      setSelectedCity({ id: cityName.toLowerCase().replace(/[^a-z0-9]+/g, "-"), lat, lng, localKeywords: [] });
       setDrillLevel('video');
 
       // 2. Search YouTube for this place
+      const localKeywordStr = `${cityName} ${t('search_keyword')}`;
       const params = new URLSearchParams({
         q: cityName,
         maxResults: '8',
         ...(countryCode && { regionCode: countryCode }),
+        localKeywords: JSON.stringify([localKeywordStr]),
         mode: videoMode,
       });
       const ytRes = await fetch(`/api/youtube?${params}`);
@@ -306,7 +311,7 @@ export default function Home() {
 
       // 3. Fallback: find nearest registered city
       const { city: nearestCity, country: nearestCountry } = getNearestCity(lat, lng);
-      console.info(`No videos for "${cityName}", falling back to nearest city: ${nearestCity.name}`);
+      console.info(`No videos for "${cityName}", falling back to nearest city: ${t(`cities.${nearestCity.id}`)}`);
       await handleCityClick(nearestCity, nearestCountry);
 
     } catch (err) {
@@ -335,6 +340,7 @@ export default function Home() {
         onCountryClick={handleCountryClick}
         onCityClick={handleCityClick}
         onMapClick={handleMapClick}
+        videoMode={videoMode}
       />
 
       {/* ══ SIDEBAR TOGGLE BUTTON (left top) ══ */}
@@ -342,7 +348,7 @@ export default function Home() {
         id="sidebar-toggle"
         onClick={() => setSidebarOpen(v => !v)}
         className="absolute top-4 left-4 z-[2000] glass-panel p-2.5 md:p-3 rounded-xl shadow-2xl hover:bg-amber-900/30 transition-all"
-        aria-label="メニューを開く"
+        aria-label={t('open_menu')}
       >
         <Menu size={20} className="text-amber-300" />
       </button>
@@ -370,46 +376,44 @@ export default function Home() {
               </button>
             </div>
 
-            {/* ── Mode Selection (Hidden for Beta to save API quota) ── */}
-            {false && (
-              <div className="px-5 pt-3 pb-2 flex gap-1.5">
-                <button
-                  onClick={() => setVideoMode('vlog')}
-                  className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
-                    ${videoMode === 'vlog'
-                      ? 'bg-amber-700/30 border-amber-500/50 text-amber-200 shadow-inner'
-                      : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
-                    }`}
-                >
-                  <span className="text-xl mb-1">📹</span>
-                  <span className="text-[10px] font-bold tracking-wider">VLOG</span>
-                </button>
+            {/* ── Mode Selection ── */}
+            <div className="px-5 pt-3 pb-2 flex gap-1.5">
+              <button
+                onClick={() => setVideoMode('vlog')}
+                className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
+                  ${videoMode === 'vlog'
+                    ? 'bg-amber-700/30 border-amber-500/50 text-amber-200 shadow-inner'
+                    : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
+                  }`}
+              >
+                <span className="text-xl mb-1">📹</span>
+                <span className="text-[10px] font-bold tracking-wider">{t('mode_vlog')}</span>
+              </button>
 
-                <button
-                  onClick={() => setVideoMode('camp')}
-                  className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
-                    ${videoMode === 'camp'
-                      ? 'bg-orange-700/30 border-orange-500/50 text-orange-200 shadow-inner'
-                      : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
-                    }`}
-                >
-                  <span className="text-xl mb-1">⛺</span>
-                  <span className="text-[10px] font-bold tracking-wider">CAMP</span>
-                </button>
+              <button
+                onClick={() => setVideoMode('camp')}
+                className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
+                  ${videoMode === 'camp'
+                    ? 'bg-orange-700/30 border-orange-500/50 text-orange-200 shadow-inner'
+                    : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
+                  }`}
+              >
+                <span className="text-xl mb-1">⛺</span>
+                <span className="text-[10px] font-bold tracking-wider">{t('mode_camp')}</span>
+              </button>
 
-                <button
-                  onClick={() => setVideoMode('scenic')}
-                  className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
-                    ${videoMode === 'scenic'
-                      ? 'bg-sky-700/30 border-sky-500/50 text-sky-200 shadow-inner'
-                      : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
-                    }`}
-                >
-                  <span className="text-xl mb-1">🚁</span>
-                  <span className="text-[10px] font-bold tracking-wider">SCENIC</span>
-                </button>
-              </div>
-            )}
+              <button
+                onClick={() => setVideoMode('scenic')}
+                className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all
+                  ${videoMode === 'scenic'
+                    ? 'bg-sky-700/30 border-sky-500/50 text-sky-200 shadow-inner'
+                    : 'bg-white/5 border-white/10 text-amber-200/50 hover:bg-amber-900/20 hover:text-amber-200/80'
+                  }`}
+              >
+                <span className="text-xl mb-1">🚁</span>
+                <span className="text-[10px] font-bold tracking-wider">{t('mode_scenic')}</span>
+              </button>
+            </div>
 
             {/* ── Random Play ── */}
             <div className="px-5 pt-3 pb-2">
@@ -418,7 +422,7 @@ export default function Home() {
                 className="w-full flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-white rounded-xl shadow-[0_0_15px_rgba(217,119,6,0.2)] font-bold transition-all border border-amber-500/50"
               >
                 <span className="text-xl leading-none">🎲</span>
-                <span>Random Best Videos</span>
+                <span>{t('random_best_videos')}</span>
               </button>
             </div>
 
@@ -429,7 +433,7 @@ export default function Home() {
                 <input
                   ref={searchRef}
                   type="text"
-                  placeholder="都市を検索…"
+                  placeholder={t('search_placeholder')}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent text-sm text-amber-100 placeholder:text-amber-400/30 outline-none"
@@ -450,17 +454,17 @@ export default function Home() {
                       // find the country this city belongs to
                       const country = AREAS
                         .flatMap(a => a.countries)
-                        .find(c => c.regionCode === city.regionCode && c.cities.some(ci => ci.name === city.name));
+                        .find(c => c.regionCode === city.regionCode && c.cities.some(ci => ci.id === city.id));
                       return (
                         <button
-                          key={`${city.countryName}-${city.name}`}
+                          key={`${t(`countries.${city.countryCode || city.regionCode}`)}-${t(`cities.${city.id}`)}`}
                           onClick={() => country && handleCityClick(city, country)}
                           className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-amber-900/20 transition-colors text-left border-b border-amber-900/20 last:border-0"
                         >
                           <span className="text-amber-400/60 text-lg leading-none">{city.countryFlag}</span>
                           <div>
-                            <p className="text-amber-100 text-sm font-medium">{city.name}</p>
-                            <p className="text-amber-400/50 text-xs">{city.nameJa} · {city.countryName}</p>
+                            <p className="text-amber-100 text-sm font-medium">{t(`cities.${city.id}`)}</p>
+                            <p className="text-amber-400/50 text-xs">{country ? t(`countries.${country.code}`) : t(`countries.${city.regionCode}`)}</p>
                           </div>
                           <ChevronRight size={14} className="ml-auto text-amber-500/40" />
                         </button>
@@ -473,7 +477,7 @@ export default function Home() {
 
             {/* ── Area / Country / City Accordion ── */}
             <div className="flex-1 overflow-y-auto px-3 pb-4">
-              <p className="px-3 mb-1 text-[10px] uppercase tracking-widest text-amber-400/40 font-semibold">エリアを選択</p>
+              <p className="px-3 mb-1 text-[10px] uppercase tracking-widest text-amber-400/40 font-semibold">{t('select_area')}</p>
               {AREAS.map(area => (
                 <div key={area.id}>
                   {/* Area row */}
@@ -486,7 +490,7 @@ export default function Home() {
                       }`}
                   >
                     <span className="text-lg shrink-0">{area.icon}</span>
-                    <span className="text-sm font-semibold flex-1">{area.nameJa}</span>
+                    <span className="text-sm font-semibold flex-1">{t(`areas.${area.id}`)}</span>
                     <ChevronDown
                       size={14}
                       className={`text-amber-500/50 transition-transform duration-200 ${expandedAreaId === area.id ? 'rotate-180' : ''}`}
@@ -516,7 +520,7 @@ export default function Home() {
                                 }`}
                             >
                               <span className="text-base shrink-0">{country.flag}</span>
-                              <span className="text-sm flex-1">{country.name}</span>
+                              <span className="text-sm flex-1">{t(`countries.${country.code}`)}</span>
                               <ChevronDown
                                 size={12}
                                 className={`text-amber-500/40 transition-transform duration-200 ${expandedCountryCode === country.code ? 'rotate-180' : ''}`}
@@ -536,13 +540,12 @@ export default function Home() {
                                 >
                                   {country.cities.map(city => (
                                     <button
-                                      key={city.name}
+                                      key={t(`cities.${city.id}`)}
                                       onClick={() => handleCityClick(city, country)}
                                       className="w-full flex items-center gap-2 px-4 py-1.5 rounded-lg text-left hover:bg-amber-700/20 transition-colors group"
                                     >
                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-600/60 shrink-0 group-hover:bg-amber-400 transition-colors" />
-                                      <span className="text-xs text-amber-200/60 group-hover:text-amber-200 transition-colors flex-1">{city.name}</span>
-                                      <span className="text-[10px] text-amber-400/30">{city.nameJa}</span>
+                                      <span className="text-xs text-amber-200/60 group-hover:text-amber-200 transition-colors flex-1">{t(`cities.${city.id}`)}</span>
                                     </button>
                                   ))}
                                 </motion.div>
@@ -561,7 +564,7 @@ export default function Home() {
             <div className="px-5 pt-3 pb-10 border-t border-amber-900/30 shrink-0">
               <div className="flex items-center gap-1.5 mb-2">
                 <Globe size={12} className="text-amber-400/50" />
-                <p className="text-[10px] uppercase tracking-widest text-amber-400/40 font-semibold">言語 / Language</p>
+                <p className="text-[10px] uppercase tracking-widest text-amber-400/40 font-semibold">{t('language_title')}</p>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 {LOCALES.map(locale => (
@@ -602,8 +605,8 @@ export default function Home() {
           >
             <ChevronLeft size={15} className="text-amber-400" />
             <span className="text-amber-200/80">
-              {selectedArea?.nameJa}
-              {selectedCountry && ` › ${selectedCountry.flag} ${selectedCountry.name}`}
+              {selectedArea ? t(`areas.${selectedArea.id}`) : ''}
+              {selectedCountry && ` › ${selectedCountry.flag} ${t(`countries.${selectedCountry.code}`)}`}
             </span>
           </motion.button>
         )}
@@ -625,11 +628,11 @@ export default function Home() {
           >
             <div className="flex flex-col items-center gap-4">
               <Loader2 size={48} className="text-amber-400 animate-spin" />
-              <p className="text-lg font-light tracking-widest text-amber-200/70">{selectedCity?.name}</p>
+              <p className="text-lg font-light tracking-widest text-amber-200/70">{selectedCity ? t(`cities.${selectedCity.id}`) : ''}</p>
               <p className="text-xs text-amber-500/50">
-                {videoMode === 'scenic' ? '🚁 絶景動画を検索中…' :
-                  videoMode === 'camp' ? '⛺ キャンプ動画を検索中…' :
-                    '📹 Vlog を検索中…'}
+                {videoMode === 'scenic' ? t('searching_scenic') :
+                  videoMode === 'camp' ? t('searching_camp') :
+                    t('searching_vlog')}
               </p>
             </div>
           </motion.div>
@@ -658,13 +661,13 @@ export default function Home() {
               {/* Mode badge */}
               <div className={`absolute top-4 left-4 z-50 flex items-center gap-2 transition-all duration-300 ${showControls || isPaused ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                 <span className="glass-panel px-3 py-1 rounded-full text-xs font-semibold text-amber-300 flex items-center gap-1.5">
-                  {videoMode === 'scenic' ? '🚁 Scenic Mode' :
-                    videoMode === 'camp' ? '⛺ Camp Mode' :
-                      '📹 Vlog Mode'}
+                  {videoMode === 'scenic' ? `🚁 ${t('mode_scenic')}` :
+                    videoMode === 'camp' ? `⛺ ${t('mode_camp')}` :
+                      `📹 ${t('mode_vlog')}`}
                 </span>
                 {selectedCity && (
                   <span className="glass-panel px-3 py-1 rounded-full text-xs text-amber-200/60">
-                    📍 {selectedCity.nameJa}
+                    📍 {t(`cities.${selectedCity.id}`)}
                   </span>
                 )}
               </div>
@@ -747,7 +750,7 @@ export default function Home() {
                 <div className="text-center">
                   <span className="text-sm md:text-base font-medium text-white/40 mb-1 block">
                     {/* Placeholder for future Affiliate links (e.g. Booking.com, Amazon) */}
-                    ✨ {videoMode === 'camp' ? 'Check out gear used in this video' : `Find the best hotels in ${selectedCity?.nameJa}`}
+                    ✨ {videoMode === 'camp' ? t('affiliate_camp') : t('affiliate_hotel', { city: selectedCity ? t(`cities.${selectedCity.id}`) : '' })}
                   </span>
                   <div className="w-48 h-2 bg-white/5 rounded-full mx-auto" />
                 </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import type { Area, Country, City } from '@/lib/countryData';
 
 interface LeafletMapProps {
@@ -9,6 +10,7 @@ interface LeafletMapProps {
     onCountryClick: (country: Country) => void;
     onCityClick: (city: City, country: Country) => void;
     onMapClick?: (lat: number, lng: number) => void;
+    videoMode: 'vlog' | 'camp' | 'scenic';
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -31,7 +33,9 @@ export default function LeafletMap({
     onCountryClick,
     onCityClick,
     onMapClick,
+    videoMode,
 }: LeafletMapProps) {
+    const t = useTranslations('Index');
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<any>(null);
     const markersRef = useRef<any[]>([]);
@@ -117,9 +121,9 @@ export default function LeafletMap({
         const L = window.L;
 
         const html = `
-            <div class="leaflet-antique-marker country-marker" title="${country.name}">
+            <div class="leaflet-antique-marker country-marker" title="${t(`countries.${country.code}`)}">
                 <span class="marker-flag">${country.flag}</span>
-                <span class="marker-name">${country.name}</span>
+                <span class="marker-name">${t(`countries.${country.code}`)}</span>
             </div>`;
 
         const icon = L.divIcon({
@@ -130,16 +134,18 @@ export default function LeafletMap({
         });
 
         return L.marker([country.lat, country.lng], { icon });
-    }, []);
+    }, [t]);
 
     const createCityMarker = useCallback((city: City, country: Country) => {
         if (!window.L) return null;
         const L = window.L;
 
+        const emoji = videoMode === 'camp' ? (Math.random() > 0.5 ? '⛺' : '🔥') : videoMode === 'scenic' ? '🚁' : '📹';
+
         const html = `
-            <div class="leaflet-antique-marker city-marker" title="${city.name}">
-                <div class="city-dot"></div>
-                <span class="marker-name">${city.nameJa}</span>
+            <div class="leaflet-antique-marker city-marker" title="${t(`cities.${city.id}`)}">
+                <div class="city-dot" style="background: transparent; font-size: 16px; width: 20px; height: 20px; transform: translate(-30%, -30%);">${emoji}</div>
+                <span class="marker-name">${t(`cities.${city.id}`)}</span>
             </div>`;
 
         const icon = L.divIcon({
@@ -152,7 +158,7 @@ export default function LeafletMap({
         return L.marker([city.lat, city.lng], { icon }).on('click', () => {
             onCityClick(city, country);
         });
-    }, [onCityClick]);
+    }, [onCityClick, videoMode, t]);
 
     // React to area selection: zoom and show country markers
     useEffect(() => {
@@ -184,8 +190,7 @@ export default function LeafletMap({
         }, 1900);
 
         return () => clearTimeout(timeout);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedArea]);
+    }, [selectedArea, createCountryMarker, onCountryClick, t]);
 
     // React to country selection: zoom and show city markers
     useEffect(() => {
@@ -213,8 +218,7 @@ export default function LeafletMap({
         }, 1600);
 
         return () => clearTimeout(timeout);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedCountry]);
+    }, [selectedCountry, createCityMarker, t]);
 
     return (
         <div className="relative w-full h-full">
