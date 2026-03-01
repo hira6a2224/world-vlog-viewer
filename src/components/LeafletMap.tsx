@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import type { Area, Country, City } from '@/lib/countryData';
 
 interface LeafletMapProps {
@@ -27,6 +27,16 @@ const ANTIQUE_COLORS = {
     selected: { fill: '#d4a017', stroke: '#8b6914' },
 };
 
+// Initial map views based on locale
+const INITIAL_VIEWS: Record<string, { center: [number, number]; zoom: number }> = {
+    ja: { center: [36.5, 138], zoom: 5 },    // Japan
+    zh: { center: [35, 105], zoom: 4 },      // China
+    ar: { center: [24, 45], zoom: 4 },       // Middle East (Saudi Arabia center)
+    es: { center: [15, -40], zoom: 3 },      // Broad view covering Spain and Latin America
+    fr: { center: [46, 2], zoom: 5 },        // France
+    en: { center: [30, 0], zoom: 2 },        // Global view
+};
+
 export default function LeafletMap({
     selectedArea,
     selectedCountry,
@@ -36,6 +46,7 @@ export default function LeafletMap({
     videoMode,
 }: LeafletMapProps) {
     const t = useTranslations('Index');
+    const locale = useLocale();
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<any>(null);
     const markersRef = useRef<any[]>([]);
@@ -58,9 +69,11 @@ export default function LeafletMap({
 
             const L = window.L;
 
+            const view = INITIAL_VIEWS[locale] || INITIAL_VIEWS.en;
+
             const map = L.map(mapContainerRef.current, {
-                center: [20, 10],
-                zoom: 2,
+                center: view.center,
+                zoom: view.zoom,
                 zoomControl: false, // Disable default top-left zoom control
                 attributionControl: true,
                 minZoom: 2,
@@ -168,7 +181,8 @@ export default function LeafletMap({
         clearMarkers();
 
         if (!selectedArea) {
-            map.flyTo([20, 10], 2, { duration: 1.5, easing: (t: number) => t });
+            const view = INITIAL_VIEWS[locale] || INITIAL_VIEWS.en;
+            map.flyTo(view.center, view.zoom, { duration: 1.5, easing: (t: number) => t });
             return;
         }
 
