@@ -27,13 +27,13 @@ const ANTIQUE_COLORS = {
     selected: { fill: '#d4a017', stroke: '#8b6914' },
 };
 
-// Initial map views based on locale
+// Initial map views based on locale - Lower zoom levels to show more global context
 const INITIAL_VIEWS: Record<string, { center: [number, number]; zoom: number }> = {
-    ja: { center: [36.5, 138], zoom: 5 },    // Japan
-    zh: { center: [35, 105], zoom: 4 },      // China
-    ar: { center: [24, 45], zoom: 4 },       // Middle East (Saudi Arabia center)
-    es: { center: [15, -40], zoom: 3 },      // Broad view covering Spain and Latin America
-    fr: { center: [46, 2], zoom: 5 },        // France
+    ja: { center: [36.5, 138], zoom: 3 },    // Japan, but wider context
+    zh: { center: [35, 105], zoom: 3 },      // China, but wider context
+    ar: { center: [24, 45], zoom: 3 },       // Middle East, but wider context
+    es: { center: [15, -40], zoom: 2 },      // Broad view covering Spain and Latin America
+    fr: { center: [46, 2], zoom: 3 },        // France, but wider context
     en: { center: [30, 0], zoom: 2 },        // Global view
 };
 
