@@ -376,7 +376,8 @@ export default function Home() {
               </button>
             </div>
 
-            {/* ── Mode Selection ── */}
+            {/* Mode selection - Hidden but code preserved for future use */}
+            {/* 
             <div className="px-5 pt-3 pb-2 flex gap-1.5">
               <button
                 onClick={() => setVideoMode('vlog')}
@@ -414,6 +415,7 @@ export default function Home() {
                 <span className="text-[10px] font-bold tracking-wider">{t('mode_scenic')}</span>
               </button>
             </div>
+            */}
 
             {/* ── Random Play ── */}
             <div className="px-5 pt-3 pb-2">
