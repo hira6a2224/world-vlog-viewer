@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
             // 1. Fetch ALL cached searches (this costs 1 read per city cached, max ~300)
             const snap = await getDocs(collection(db, 'youtube_cache'));
-            let allVideos: VideoResult[] = [];
+            const allVideos: VideoResult[] = [];
 
             snap.forEach(docSnap => {
                 const data = docSnap.data();
@@ -34,13 +34,13 @@ export async function GET(request: NextRequest) {
                     // doc.id format: encodeURIComponent(`v5|City|Code|mode`).replace(/%/g, '_')
                     // It's easier to just decode it.
                     try {
-                        let originalKey = decodeURIComponent(docSnap.id.replace(/_/g, '%'));
+                        const originalKey = decodeURIComponent(docSnap.id.replace(/_/g, '%'));
                         // If it's the old cache format without v5, it might just be City|Code|mode
                         const parts = originalKey.split('|');
                         const docMode = parts[parts.length - 1]; // usually mode is the last part
 
                         // We will add a hidden mode property if it doesn't exist
-                        const vids = data.videos.map((v: any) => ({ ...v, _mode: docMode }));
+                        const vids = data.videos.map((v: VideoResult) => ({ ...v, _mode: docMode }));
                         allVideos.push(...vids);
                     } catch (e) {
                         allVideos.push(...data.videos);
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Filter the pool by requested mode
-        const poolForMode = globalRandomPool.filter((v: any) => v._mode === mode || !v._mode);
+        const poolForMode = globalRandomPool.filter((v: VideoResult & { _mode?: string }) => v._mode === mode || !v._mode);
 
         if (poolForMode.length === 0) {
             return NextResponse.json({ videos: [] });
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
         const selected = shuffled.slice(0, count);
 
         // Remove the internal _mode flag before sending to client
-        const cleanSelected = selected.map((v: any) => {
+        const cleanSelected = selected.map((v: VideoResult & { _mode?: string }) => {
             const { _mode, ...rest } = v;
             return rest;
         });

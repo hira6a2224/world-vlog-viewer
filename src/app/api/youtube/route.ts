@@ -8,7 +8,9 @@ import { searchVideos, type VideoResult } from '@/lib/youtube';
 import { db } from '@/lib/firebase';
 import { makeCacheKey, getCachedVideos, setCachedVideos, getVideoRatings } from '@/lib/firestoreCache';
 
-async function attachRatingsAndSort(videos: VideoResult[], firestoreDb: any): Promise<VideoResult[]> {
+import type { Firestore } from 'firebase/firestore';
+
+async function attachRatingsAndSort(videos: VideoResult[], firestoreDb: Firestore): Promise<VideoResult[]> {
     if (!videos || videos.length === 0) return videos;
     const videoIds = videos.map(v => v.id);
     const ratingsMap = await getVideoRatings(firestoreDb, videoIds);
@@ -161,7 +163,7 @@ export async function GET(request: NextRequest) {
 // ── Debug endpoint: cache stats ───────────────────────────────────────────────
 // POST /api/youtube  (only in development)
 // Returns: { size, entries: [{key, hits, expiresIn}] }
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
     if (process.env.NODE_ENV !== 'development') {
         return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
     }

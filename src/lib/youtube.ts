@@ -87,7 +87,7 @@ export async function searchVideos(
         if (items.length === 0) return [];
 
         // Get detailed video info: statistics + contentDetails (for duration)
-        const videoIds = items.map((item: any) => item.id.videoId).join(',');
+        const videoIds = items.map((item: { id: { videoId: string } }) => item.id.videoId).join(',');
         const detailsParams = new URLSearchParams({
             part: 'statistics,contentDetails',
             id: videoIds,
@@ -149,13 +149,14 @@ export async function searchVideos(
 
             if (hasNegativeTerm) continue;
 
+            const snippet = item.snippet as { title: string, channelId: string, channelTitle: string, publishedAt: string, thumbnails?: { high?: { url: string }, default?: { url: string } } };
             results.push({
                 id: vid,
-                title: (item.snippet as any).title,
-                channelId: (item.snippet as any).channelId,
-                channelTitle: (item.snippet as any).channelTitle,
-                publishedAt: (item.snippet as any).publishedAt,
-                thumbnail: (item.snippet as any).thumbnails?.high?.url || (item.snippet as any).thumbnails?.default?.url,
+                title: snippet.title,
+                channelId: snippet.channelId,
+                channelTitle: snippet.channelTitle,
+                publishedAt: snippet.publishedAt,
+                thumbnail: snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url || '',
                 viewCount: details.viewCount,
                 durationSeconds,
             });
