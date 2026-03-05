@@ -356,28 +356,20 @@ export default function Home() {
       {/* ══ MOBILE AREA SELECTOR (Top Horizontal Scroll) ══ */}
       {!showPlayer && (
         <div className="md:hidden absolute top-4 left-[68px] right-4 z-[1900] overflow-x-auto flex items-center gap-2 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {drillLevel !== 'area' && (
-            <button
-              onClick={() => {
-                setDrillLevel('area');
-                setSelectedArea(null);
-                setSelectedCountry(null);
-                setSelectedCity(null);
-              }}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-md text-sm font-medium transition-colors bg-amber-900/60 border-amber-500/50 text-amber-100"
-            >
-              <ChevronLeft size={14} className="text-amber-400" />
-              <span className="whitespace-nowrap">
-                {selectedCountry ? `${selectedCountry.flag} ${t(`countries.${selectedCountry.code}`)}` : selectedArea ? t(`areas.${selectedArea.id}`) : ''}
-              </span>
-            </button>
-          )}
 
           {AREAS.map(area => (
             <button
               key={area.id}
               onClick={() => {
-                handleSidebarAreaClick(area);
+                if (selectedArea?.id === area.id) {
+                  setDrillLevel('area');
+                  setSelectedArea(null);
+                  setSelectedCountry(null);
+                  setSelectedCity(null);
+                  setExpandedAreaId(null);
+                } else {
+                  handleSidebarAreaClick(area);
+                }
               }}
               className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-md text-sm font-medium transition-colors ${selectedArea?.id === area.id ? 'bg-amber-600/80 border-amber-500/50 text-white' : 'glass-panel border-amber-900/40 text-amber-100 hover:bg-amber-900/40'}`}
             >
