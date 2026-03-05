@@ -353,6 +353,20 @@ export default function Home() {
         <Menu size={20} className="text-amber-300" />
       </button>
 
+      {/* ══ MOBILE AREA SELECTOR (Top Horizontal Scroll) ══ */}
+      <div className="md:hidden absolute top-4 left-[72px] right-4 z-[1900] overflow-x-auto flex items-center gap-2 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {AREAS.map(area => (
+          <button
+            key={area.id}
+            onClick={() => handleSidebarAreaClick(area)}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-md text-sm font-medium transition-colors ${selectedArea?.id === area.id ? 'bg-amber-600/80 border-amber-500/50 text-white' : 'glass-panel border-amber-900/40 text-amber-100 hover:bg-amber-900/40'}`}
+          >
+            <span className="text-base leading-none">{area.icon}</span>
+            <span className="whitespace-nowrap">{t(`areas.${area.id}`)}</span>
+          </button>
+        ))}
+      </div>
+
       {/* ══ SIDEBAR DRAWER ══ */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -685,78 +699,65 @@ export default function Home() {
                   onEnded={handleSkip}
                   onPlay={() => {
                     setIsPaused(false);
-                    // trigger mouse move to start the hide timeout again
-                    handleMouseMove();
                   }}
                   onPause={() => {
                     setIsPaused(true);
-                    setShowControls(true);
-                    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
                   }}
                 />
+              </div>
 
-                {/* Bottom controls */}
-                <div className={`absolute inset-x-0 bottom-0 p-6 md:p-8 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-between transition-all duration-500 ${showControls || isPaused ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                  <div className="space-y-1 max-w-[60%]">
-                    <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-white line-clamp-2">
-                      {currentVideo.title}
-                    </h2>
-                    <div className="flex items-center gap-2 text-sm text-white/60 flex-wrap">
-                      <span>{currentVideo.channelTitle}</span>
-                      <span className="w-1 h-1 rounded-full bg-white/30" />
-                      <span>👁 {formatViewCount(currentVideo.viewCount)}</span>
-                      <span className="w-1 h-1 rounded-full bg-white/30" />
-                      <span>⏱ {formatDuration(currentVideo.durationSeconds)}</span>
-                      <span className="w-1 h-1 rounded-full bg-white/30" />
-                      <span className="text-xs">{currentVideoIndex + 1} / {videos.length}</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleRate(true); }}
-                        disabled={ratedVideos.has(currentVideo.id)}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all text-xs font-semibold ${ratedVideos.has(currentVideo.id) ? 'border-white/10 text-white/40 bg-white/5' : 'border-white/30 text-white hover:bg-white/20 hover:border-white/50 shadow-md'}`}>
-                        <ThumbsUp size={14} className={ratedVideos.has(currentVideo.id) ? '' : 'text-green-400'} /> {currentVideo.ratings?.likes || 0}
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleRate(false); }}
-                        disabled={ratedVideos.has(currentVideo.id)}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all text-xs font-semibold ${ratedVideos.has(currentVideo.id) ? 'border-white/10 text-white/40 bg-white/5' : 'border-white/30 text-white hover:bg-white/20 hover:border-white/50 shadow-md'}`}>
-                        <ThumbsDown size={14} className={ratedVideos.has(currentVideo.id) ? '' : 'text-red-400'} /> {currentVideo.ratings?.dislikes || 0}
-                      </button>
-                    </div>
+              {/* Bottom controls (Moved down to prevent YouTube UI overlap) */}
+              <div className="w-full bg-neutral-900 border-t border-white/10 p-4 md:p-6 flex flex-col md:flex-row items-start md:items-end justify-between gap-4 shrink-0 mt-auto">
+                <div className="space-y-1 max-w-[60%]">
+                  <h2 className="text-lg md:text-2xl font-semibold tracking-tight text-white line-clamp-2">
+                    {currentVideo.title}
+                  </h2>
+                  <div className="flex items-center gap-2 text-sm text-white/60 flex-wrap">
+                    <span>{currentVideo.channelTitle}</span>
+                    <span className="w-1 h-1 rounded-full bg-white/30" />
+                    <span>👁 {formatViewCount(currentVideo.viewCount)}</span>
+                    <span className="w-1 h-1 rounded-full bg-white/30" />
+                    <span>⏱ {formatDuration(currentVideo.durationSeconds)}</span>
+                    <span className="w-1 h-1 rounded-full bg-white/30" />
+                    <span className="text-xs">{currentVideoIndex + 1} / {videos.length}</span>
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <a
-                      href={`https://www.youtube.com/channel/${currentVideo.channelId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-sm font-medium backdrop-blur-md text-white"
-                    >
-                      <ExternalLink size={16} />
-                      <span className="hidden md:inline">{t('channel_link')}</span>
-                    </a>
+                  <div className="flex items-center gap-2 mt-2">
                     <button
-                      onClick={handleSkip}
-                      className="flex items-center gap-2 px-5 md:px-8 py-2 md:py-3 rounded-full bg-amber-600 hover:bg-amber-500 text-white transition-all text-sm font-semibold shadow-lg shadow-amber-900/40"
-                    >
-                      <SkipForward size={16} fill="currentColor" />
-                      {t('skip_button')}
+                      onClick={(e) => { e.stopPropagation(); handleRate(true); }}
+                      disabled={ratedVideos.has(currentVideo.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all text-xs font-semibold ${ratedVideos.has(currentVideo.id) ? 'border-white/10 text-white/40 bg-white/5' : 'border-white/30 text-white hover:bg-white/20 hover:border-white/50 shadow-md'}`}>
+                      <ThumbsUp size={14} className={ratedVideos.has(currentVideo.id) ? '' : 'text-green-400'} /> {currentVideo.ratings?.likes || 0}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRate(false); }}
+                      disabled={ratedVideos.has(currentVideo.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all text-xs font-semibold ${ratedVideos.has(currentVideo.id) ? 'border-white/10 text-white/40 bg-white/5' : 'border-white/30 text-white hover:bg-white/20 hover:border-white/50 shadow-md'}`}>
+                      <ThumbsDown size={14} className={ratedVideos.has(currentVideo.id) ? '' : 'text-red-400'} /> {currentVideo.ratings?.dislikes || 0}
                     </button>
                   </div>
                 </div>
-              </div>
 
-              {/* Affiliate Link Reservation Area */}
-              <div className="w-full h-20 md:h-24 bg-neutral-900 border-t border-white/10 flex items-center justify-center p-4">
-                <div className="text-center">
-                  <span className="text-sm md:text-base font-medium text-white/40 mb-1 block">
-                    {/* Placeholder for future Affiliate links (e.g. Booking.com, Amazon) */}
-                    ✨ {videoMode === 'camp' ? t('affiliate_camp') : t('affiliate_hotel', { city: selectedCity ? t(`cities.${selectedCity.id}`) : '' })}
-                  </span>
-                  <div className="w-48 h-2 bg-white/5 rounded-full mx-auto" />
+                <div className="flex items-center gap-3">
+                  <a
+                    href={`https://www.youtube.com/channel/${currentVideo.channelId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 transition-all text-sm font-medium backdrop-blur-md text-white"
+                  >
+                    <ExternalLink size={16} />
+                    <span className="hidden md:inline">{t('channel_link')}</span>
+                  </a>
+                  <button
+                    onClick={handleSkip}
+                    className="flex items-center gap-2 px-5 md:px-8 py-2 md:py-3 rounded-full bg-amber-600 hover:bg-amber-500 text-white transition-all text-sm font-semibold shadow-lg shadow-amber-900/40"
+                  >
+                    <SkipForward size={16} fill="currentColor" />
+                    {t('skip_button')}
+                  </button>
                 </div>
               </div>
+
+              {/* Affiliate Link Reservation Area (Currently Hidden) */}
             </div>
           </motion.div>
         )}
