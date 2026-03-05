@@ -353,20 +353,6 @@ export default function Home() {
         <Menu size={20} className="text-amber-300" />
       </button>
 
-      {/* ══ MOBILE AREA SELECTOR (Top Horizontal Scroll) ══ */}
-      <div className="md:hidden absolute top-4 left-[72px] right-4 z-[1900] overflow-x-auto flex items-center gap-2 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {AREAS.map(area => (
-          <button
-            key={area.id}
-            onClick={() => handleSidebarAreaClick(area)}
-            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-md text-sm font-medium transition-colors ${selectedArea?.id === area.id ? 'bg-amber-600/80 border-amber-500/50 text-white' : 'glass-panel border-amber-900/40 text-amber-100 hover:bg-amber-900/40'}`}
-          >
-            <span className="text-base leading-none">{area.icon}</span>
-            <span className="whitespace-nowrap">{t(`areas.${area.id}`)}</span>
-          </button>
-        ))}
-      </div>
-
       {/* ══ SIDEBAR DRAWER ══ */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -494,86 +480,107 @@ export default function Home() {
             {/* ── Area / Country / City Accordion ── */}
             <div className="flex-1 overflow-y-auto px-3 pb-4">
               <p className="px-3 mb-1 text-[10px] uppercase tracking-widest text-amber-400/40 font-semibold">{t('select_area')}</p>
-              {AREAS.map(area => (
-                <div key={area.id}>
-                  {/* Area row */}
+
+              {/* Mobile Area Quick Select (Hidden on Desktop) */}
+              <div className="md:hidden grid grid-cols-2 gap-2 px-3 mb-4">
+                {AREAS.map(area => (
                   <button
-                    onClick={() => handleSidebarAreaClick(area)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl mb-0.5 text-left transition-all
-                                            ${expandedAreaId === area.id
-                        ? 'bg-amber-900/30 text-amber-200'
-                        : 'hover:bg-amber-900/15 text-amber-200/70'
-                      }`}
+                    key={'mobile-' + area.id}
+                    onClick={() => {
+                      handleSidebarAreaClick(area);
+                      setSidebarOpen(false); // Close sidebar so map zoom is visible
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border shadow-sm text-sm font-medium transition-colors ${selectedArea?.id === area.id ? 'bg-amber-600/80 border-amber-500/50 text-white' : 'bg-white/5 border-amber-900/40 text-amber-100 hover:bg-amber-900/30'}`}
                   >
-                    <span className="text-lg shrink-0">{area.icon}</span>
-                    <span className="text-sm font-semibold flex-1">{t(`areas.${area.id}`)}</span>
-                    <ChevronDown
-                      size={14}
-                      className={`text-amber-500/50 transition-transform duration-200 ${expandedAreaId === area.id ? 'rotate-180' : ''}`}
-                    />
+                    <span className="text-lg">{area.icon}</span>
+                    <span className="whitespace-nowrap">{t(`areas.${area.id}`)}</span>
                   </button>
+                ))}
+              </div>
 
-                  {/* Country accordion */}
-                  <AnimatePresence>
-                    {expandedAreaId === area.id && (
-                      <motion.div
-                        key={area.id + '-countries'}
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.22 }}
-                        className="overflow-hidden"
-                      >
-                        {area.countries.map(country => (
-                          <div key={country.code} className="ml-4 border-l border-amber-900/25 pl-2 mb-0.5">
-                            {/* Country row */}
-                            <button
-                              onClick={() => handleSidebarCountryClick(country)}
-                              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-all
+              {/* Desktop Accordion (Hidden on Mobile) */}
+              <div className="hidden md:block">
+                {AREAS.map(area => (
+                  <div key={area.id}>
+                    {/* Area row */}
+                    <button
+                      onClick={() => handleSidebarAreaClick(area)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl mb-0.5 text-left transition-all
+                                            ${expandedAreaId === area.id
+                          ? 'bg-amber-900/30 text-amber-200'
+                          : 'hover:bg-amber-900/15 text-amber-200/70'
+                        }`}
+                    >
+                      <span className="text-lg shrink-0">{area.icon}</span>
+                      <span className="text-sm font-semibold flex-1">{t(`areas.${area.id}`)}</span>
+                      <ChevronDown
+                        size={14}
+                        className={`text-amber-500/50 transition-transform duration-200 ${expandedAreaId === area.id ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {/* Country accordion */}
+                    <AnimatePresence>
+                      {expandedAreaId === area.id && (
+                        <motion.div
+                          key={area.id + '-countries'}
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.22 }}
+                          className="overflow-hidden"
+                        >
+                          {area.countries.map(country => (
+                            <div key={country.code} className="ml-4 border-l border-amber-900/25 pl-2 mb-0.5">
+                              {/* Country row */}
+                              <button
+                                onClick={() => handleSidebarCountryClick(country)}
+                                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-all
                                                                 ${expandedCountryCode === country.code
-                                  ? 'bg-amber-800/25 text-amber-200'
-                                  : 'hover:bg-amber-900/15 text-amber-300/70'
-                                }`}
-                            >
-                              <span className="text-base shrink-0">{country.flag}</span>
-                              <span className="text-sm flex-1">{t(`countries.${country.code}`)}</span>
-                              <ChevronDown
-                                size={12}
-                                className={`text-amber-500/40 transition-transform duration-200 ${expandedCountryCode === country.code ? 'rotate-180' : ''}`}
-                              />
-                            </button>
+                                    ? 'bg-amber-800/25 text-amber-200'
+                                    : 'hover:bg-amber-900/15 text-amber-300/70'
+                                  }`}
+                              >
+                                <span className="text-base shrink-0">{country.flag}</span>
+                                <span className="text-sm flex-1">{t(`countries.${country.code}`)}</span>
+                                <ChevronDown
+                                  size={12}
+                                  className={`text-amber-500/40 transition-transform duration-200 ${expandedCountryCode === country.code ? 'rotate-180' : ''}`}
+                                />
+                              </button>
 
-                            {/* City rows */}
-                            <AnimatePresence>
-                              {expandedCountryCode === country.code && (
-                                <motion.div
-                                  key={country.code + '-cities'}
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.18 }}
-                                  className="overflow-hidden"
-                                >
-                                  {country.cities.map(city => (
-                                    <button
-                                      key={t(`cities.${city.id}`)}
-                                      onClick={() => handleCityClick(city, country)}
-                                      className="w-full flex items-center gap-2 px-4 py-1.5 rounded-lg text-left hover:bg-amber-700/20 transition-colors group"
-                                    >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600/60 shrink-0 group-hover:bg-amber-400 transition-colors" />
-                                      <span className="text-xs text-amber-200/60 group-hover:text-amber-200 transition-colors flex-1">{t(`cities.${city.id}`)}</span>
-                                    </button>
-                                  ))}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
+                              {/* City rows */}
+                              <AnimatePresence>
+                                {expandedCountryCode === country.code && (
+                                  <motion.div
+                                    key={country.code + '-cities'}
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.18 }}
+                                    className="overflow-hidden"
+                                  >
+                                    {country.cities.map(city => (
+                                      <button
+                                        key={t(`cities.${city.id}`)}
+                                        onClick={() => handleCityClick(city, country)}
+                                        className="w-full flex items-center gap-2 px-4 py-1.5 rounded-lg text-left hover:bg-amber-700/20 transition-colors group"
+                                      >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600/60 shrink-0 group-hover:bg-amber-400 transition-colors" />
+                                        <span className="text-xs text-amber-200/60 group-hover:text-amber-200 transition-colors flex-1">{t(`cities.${city.id}`)}</span>
+                                      </button>
+                                    ))}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* ── Language Switcher ── */}
