@@ -353,6 +353,41 @@ export default function Home() {
         <Menu size={20} className="text-amber-300" />
       </button>
 
+      {/* ══ MOBILE AREA SELECTOR (Top Horizontal Scroll) ══ */}
+      {!showPlayer && (
+        <div className="md:hidden absolute top-4 left-[68px] right-4 z-[1900] overflow-x-auto flex items-center gap-2 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {drillLevel !== 'area' && (
+            <button
+              onClick={() => {
+                setDrillLevel('area');
+                setSelectedArea(null);
+                setSelectedCountry(null);
+                setSelectedCity(null);
+              }}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-md text-sm font-medium transition-colors bg-amber-900/60 border-amber-500/50 text-amber-100"
+            >
+              <ChevronLeft size={14} className="text-amber-400" />
+              <span className="whitespace-nowrap">
+                {selectedCountry ? `${selectedCountry.flag} ${t(`countries.${selectedCountry.code}`)}` : selectedArea ? t(`areas.${selectedArea.id}`) : ''}
+              </span>
+            </button>
+          )}
+
+          {AREAS.map(area => (
+            <button
+              key={area.id}
+              onClick={() => {
+                handleSidebarAreaClick(area);
+              }}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-md text-sm font-medium transition-colors ${selectedArea?.id === area.id ? 'bg-amber-600/80 border-amber-500/50 text-white' : 'glass-panel border-amber-900/40 text-amber-100 hover:bg-amber-900/40'}`}
+            >
+              <span className="text-base leading-none">{area.icon}</span>
+              <span className="whitespace-nowrap">{t(`areas.${area.id}`)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ══ SIDEBAR DRAWER ══ */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -480,29 +515,10 @@ export default function Home() {
             {/* ── Area / Country / City Accordion ── */}
             <div className="flex-1 overflow-y-auto px-3 pb-4">
               <p className="px-3 mb-1 text-[10px] uppercase tracking-widest text-amber-400/40 font-semibold">{t('select_area')}</p>
-
-              {/* Mobile Area Quick Select (Hidden on Desktop) */}
-              <div className="md:hidden grid grid-cols-2 gap-2 px-3 mb-4">
-                {AREAS.map(area => (
-                  <button
-                    key={'mobile-' + area.id}
-                    onClick={() => {
-                      handleSidebarAreaClick(area);
-                      setSidebarOpen(false); // Close sidebar so map zoom is visible
-                    }}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border shadow-sm text-sm font-medium transition-colors ${selectedArea?.id === area.id ? 'bg-amber-600/80 border-amber-500/50 text-white' : 'bg-white/5 border-amber-900/40 text-amber-100 hover:bg-amber-900/30'}`}
-                  >
-                    <span className="text-lg">{area.icon}</span>
-                    <span className="whitespace-nowrap">{t(`areas.${area.id}`)}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Desktop Accordion (Hidden on Mobile) */}
-              <div className="hidden md:block">
-                {AREAS.map(area => (
-                  <div key={area.id}>
-                    {/* Area row */}
+              
+              {AREAS.map(area => (
+                <div key={area.id}>
+                  {/* Area row */}
                     <button
                       onClick={() => handleSidebarAreaClick(area)}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl mb-0.5 text-left transition-all
@@ -580,7 +596,6 @@ export default function Home() {
                     </AnimatePresence>
                   </div>
                 ))}
-              </div>
             </div>
 
             {/* ── Language Switcher ── */}
@@ -624,7 +639,7 @@ export default function Home() {
               setSelectedCountry(null);
               setSelectedCity(null);
             }}
-            className="absolute top-5 right-5 z-[1900] glass-panel px-4 py-2 rounded-xl flex items-center gap-2 text-sm shadow-xl hover:bg-amber-900/20 transition-colors"
+            className="hidden md:flex absolute top-5 right-5 z-[1900] glass-panel px-4 py-2 rounded-xl items-center gap-2 text-sm shadow-xl hover:bg-amber-900/20 transition-colors"
           >
             <ChevronLeft size={15} className="text-amber-400" />
             <span className="text-amber-200/80">
